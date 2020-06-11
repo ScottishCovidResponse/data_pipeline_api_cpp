@@ -111,7 +111,7 @@ This is C++ API is designed to be header-only, while dependency libraries need t
 
 ### Install dependency on Ubuntu 18.04
 
-`sudo apt install libopenssl-dev, libpoco-dev, libhdf5-dev`
+`sudo apt install libssl-dev, libpoco-dev, libhdf5-dev`
 optional: 
 `sudo apt install libeigen3-dev`
 
