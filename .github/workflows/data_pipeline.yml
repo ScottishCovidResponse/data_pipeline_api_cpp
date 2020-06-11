@@ -30,12 +30,11 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Install packages
-      run: sudo apt-get update && sudo apt-get install -y \
-           libgsl-dev libssl-dev libpoco-dev libhdf5-dev libeigen3-dev
-
+      run: sudo apt-get update && sudo apt-get install -y libssl-dev libpoco-dev libhdf5-dev libeigen3-dev
+      # libgsl-dev  not found
+  
     - name: Install devtools like cppcheck
-      run: sudo apt-get install -y cppcheck clang-tidy \
-          doxygen graphviz   lcov htmldoc poppler-utils 
+      run: sudo apt-get install -y cppcheck clang-tidy doxygen graphviz   lcov htmldoc poppler-utils 
 
     - name: Compile
       run: |

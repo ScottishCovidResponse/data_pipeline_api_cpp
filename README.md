@@ -125,14 +125,15 @@ optional: `yum install install eigen3-devel`
 
 This project's cmake can download and build latest HDF5 lib in local build folder. 
 
-#### MacOS  (Todo)
+#### MacOS 
 homebrew maybe is the way to go. The dependencies name and version can be checked online
 https://formulae.brew.sh/formula/
 
 If brew is not installed yet, run `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"`
 
-Install dependencies: `brew update && brew install eigen poco hdf5@1.10 openssl`
+Install dependencies: `brew update && brew install eigen poco hdf5 openssl`
 
+On macos-latest (), the default HDF5 version is 1.12. It is possible to install `hdf5@1.10`, but cmake failed to find it, version 1.12 is used.
 
 ###  build with cmake
 

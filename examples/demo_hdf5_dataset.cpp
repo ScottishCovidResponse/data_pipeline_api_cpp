@@ -16,8 +16,10 @@ int main()
 
     init_h5_type();
     std::vector<InfectionState> values;
-    values.push_back({1, 2, 3, 4});
-    values.push_back({10, 20, 30, 40});
+    InfectionState v1; // {1, 2, 3, 4};  does not in C++11 but C++17
+    InfectionState v2; // {10, 20, 30, 40};
+    values.push_back(v1);
+    values.push_back(v2);
 
     //Group* g = new H5File(H5FILE_NAME, H5F_ACC_RDONLY);  // why not working?
     data::IO::WriteVector<InfectionState>(values, file, DS_NAME, ds_type);

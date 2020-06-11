@@ -5,7 +5,7 @@ project(covid19-cxx-data-management)
 enable_language(CXX)
 
 option(ENABLE_HDF5 "Enable HDF5 support" ON)
-option(ENABLE_EIGEN "Enable Eigen vector and matrix support" ON)
+option(ENABLE_EIGEN "Enable Eigen vector and matrix support" OFF)
 option(ENABLE_NETWORKING "Enable HDF5 support" ON)
 
 option(ENABLE_CODE_COVERAGE "Enable coverage reporting" OFF)
@@ -19,6 +19,17 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/examples")
 # for json.hpp, catch.h
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party") 
 
+##############################################################
+# supply env variable to cmake for other parameters:  `CXX=clang++  cmake ..`
+# std can and should be applied to target only, here is the default C++11
+if (NOT DEFINED CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 11)
+endif()
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if (NOT DEFINED CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
 
 ## put all targets in bin and lib
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
@@ -53,7 +64,7 @@ if(ENABLE_NETWORKING)
     #find_package(OpenSSL REQUIRED)
 
     if (UNIX)
-        if(ON) # centos, rhel7 may have problem in Poco_LIBRARIES
+        if(NOT APPLE) # centos, rhel7 may have problem in Poco_LIBRARIES
             set(Poco_LIBRARIES "-lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON -lPocoUtil")
             message(STATUS " manually set Poco_LIBRARIES = ${Poco_LIBRARIES}")
             # to make it compatible with Poco_LIBRARIES of FindPoco.cmake
