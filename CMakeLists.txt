@@ -60,8 +60,12 @@ if(ENABLE_NETWORKING)
     find_package(Poco REQUIRED COMPONENTS Foundation Util Net NetSSL Crypto JSON)
     include_directories(${Poco_INCLUDE_DIRS})
 
-    # openssl-dev must be installed, but not needed to find the package
-    #find_package(OpenSSL REQUIRED)
+    # openssl dev must be installed, but not needed to find the package except APPLE
+    find_package(OpenSSL REQUIRED)
+    include_directories(${OPENSSL_INCLUDE_DIR})
+    message("OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
+    message("OpenSSL libraries: ${OPENSSL_LIBRARIES}")
+
 
     if (UNIX)
         if(NOT APPLE) # centos, rhel7 may have problem in Poco_LIBRARIES

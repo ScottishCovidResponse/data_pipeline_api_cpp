@@ -16,15 +16,27 @@ int main()
 
     init_h5_type();
     std::vector<InfectionState> values;
-    InfectionState v1; // {1, 2, 3, 4};  does not in C++11 but C++17
-    InfectionState v2; // {10, 20, 30, 40};
-    values.push_back(v1);
+    InfectionState v1 = {1, 2, 3, 4}; // Aggregate initialization in C++17
+    InfectionState v2 = {10, 20, 30, 40};
+    values.push_back(v1); // Aggregate initialization inside push_back() needs C++17
     values.push_back(v2);
 
-    //Group* g = new H5File(H5FILE_NAME, H5F_ACC_RDONLY);  // why not working?
     data::IO::WriteVector<InfectionState>(values, file, DS_NAME, ds_type);
-    auto v = data::IO::ReadVector<InfectionState>(file, DS_NAME, ds_type);
-    assert(v.size() == 2);
+    auto va = data::IO::ReadVector<InfectionState>(file, DS_NAME, ds_type);
+    assert(va.size() == 2);
+
+    std::vector<ComplexData> cvalues;
+    // Aggregate initialization inside push_back() needs C++17
+    cvalues.push_back({1.0, {1, 2, 3}, "complex", v1});
+    cvalues.push_back({2.0, {4, 5, 6}, "data", v2});
+    data::IO::WriteVector<ComplexData>(cvalues, file, "complex_data", cd_type);
+    // Although, the code compile, but there is error! stack smashing detected
+    // std::cout << v.cstr  << std::endl;
+    auto cv = data::IO::ReadVector<ComplexData>(file, "complex_data", cd_type);
+    for (const ComplexData &v : cv)
+    {
+        std::cout << v.state.deaths << std::endl;
+    }
 
     std::vector<std::vector<int>> mat = {{1, 2, 3}, {4, 5, 6}};
     data::IO::WriteMatrix<int>(mat, file, "IntMatrix", PredType::NATIVE_INT);

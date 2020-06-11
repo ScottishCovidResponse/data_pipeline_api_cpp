@@ -7,7 +7,12 @@ if(ENABLE_HDF5)
         demo_hdf5_dataset
         ${_hdf5_libs}
     )
-
+    target_compile_options(demo_hdf5_dataset PRIVATE -Wall -Wextra -Wno-unused)
+    set_target_properties(demo_hdf5_dataset PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+    )
 endif()
 
 
