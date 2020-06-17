@@ -12,6 +12,19 @@ using namespace EERAModel;
 
 int main()
 {
+
+#if DATA_USE_TOML
+
+    toml::value tvalue{{"a", 1}, {"b", 2.3}, {"c", "message"}};
+    // there must be a better way for cast
+    ext::foo ef = toml::from<ext::foo>::from_toml(tvalue);
+    std::cout << "toml cast into C++ type: " << ef.c << std::endl;
+    assert(ef.a == 1);
+
+    // from C++ type to toml value is also possible
+    toml::value t_value1(ef);
+#endif
+
     std::shared_ptr<H5File> file = std::make_shared<H5File>(H5FILE_NAME, H5F_ACC_TRUNC);
 
     init_h5_type();
@@ -27,8 +40,10 @@ int main()
 
     std::vector<ComplexData> cvalues;
     // Aggregate initialization inside push_back() needs C++17
-    cvalues.push_back({1.0, {1, 2, 3}, "complex", v1});
-    cvalues.push_back({2.0, {4, 5, 6}, "data", v2});
+    ComplexData cd1(1.0, v1); // = {1.0, {1, 2, 3}, "complex", v1};
+    ComplexData cd2(2.0, v2); //  = {2.0, {4, 5, 6}, "complex", v2};
+    cvalues.push_back(cd1);
+    cvalues.push_back(cd2);
     data::IO::WriteVector<ComplexData>(cvalues, file, "complex_data", cd_type);
     // Although, the code compile, but there is error! stack smashing detected
     // std::cout << v.cstr  << std::endl;

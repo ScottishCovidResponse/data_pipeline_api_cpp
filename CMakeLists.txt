@@ -5,6 +5,7 @@ project(covid19-cxx-data-management)
 enable_language(CXX)
 
 option(ENABLE_HDF5 "Enable HDF5 support" ON)
+option(ENABLE_TOML "Enable toml configuraton file support" ON)
 option(ENABLE_EIGEN "Enable Eigen vector and matrix support" OFF)
 option(ENABLE_NETWORKING "Enable HDF5 support" ON)
 
@@ -17,7 +18,8 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 # sal_signal.h moved to examples folder
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/examples")
 # for json.hpp, catch.h
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party") 
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party")
+# header-only library toml11 as submodule in third-party folder
 
 ##############################################################
 # supply env variable to cmake for other parameters:  `CXX=clang++  cmake ..`

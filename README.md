@@ -104,14 +104,16 @@ Generic API
 EERA model specific header and demo
  2 files
 
-Some header only libraries are downloaded and copied into this repository for the moment.
-+ json.hpp
-+ toml.hpp
-+ eigen3-hdf5.hpp
+Some header only libraries are downloaded and copied into this repository for the moment.  `git submodule add -b master https://github.com/ToruNiina/toml11.git`
++ json.hpp   download as a copy
++ toml.hpp    git submodule 
++ eigen3-hdf5.hpp  download as a copy, with modification
 
 This is C++ API is designed to be header-only, while dependency libraries need to be installed, see guide below. This API can be used  as a git submodule, or just copy this repo folder into specific model project, and then include this folder in the project root CMakeLists.txt.
 
-### Install dependency on Ubuntu 18.04
+note: as git module is used, add `--recursive`when clone this repo, i.e. `git clone --recursive this_repo`. read more on using submodule: <https://www.vogella.com/tutorials/GitSubmodules/article.html>
+
+### Install dependency on Ubuntu 18.04/20.04
 
 `sudo apt install libssl-dev, libpoco-dev, libhdf5-dev`
 optional: 
@@ -164,21 +166,33 @@ It is assume model needs 2 kinds of inputs
 
 Model author will focus on model simulation code and judge the quality of result
 
+## EERA specific
+### [EERAModel_Data.md](EERAModel_Data.md)
+
+Parameters def from Peter
+
+https://github.com/ScottishCovidResponse/temporary_data/tree/peter-t-fox/444-add-eera-params-for-staging/temporary/Covid19_EERAModel/fixed-parameters
+
 ### Thibaud is working on Irish model
-more general model workflow, abstracted from all other model
+more general model workflow, abstracted from all other models
+It has been merged on date ???
+Kristian is working on Data Abstraction Layer
 
 To enable correlation validation by other models,  a proper Result data structure
 
 ### Parameter class design
 
-`template<typename T> class Parameter` is not preferred, because  mixed type parameter dictionary, such as `std::map<std::string, Parameter>` is desired. Meanwhile, some C++ object can hold value of dynamic types with type info accessible, such as `Poco::Dynamic::Var` or `std::any`. For example, `nlohmann::json` has  `type()` and type trait functions
+`template<typename T> class Parameter` is not preferred, because  mixed type parameter dictionary, such as `std::map<std::string, Parameter>` is desired. Meanwhile, some C++ object can hold value of dynamic types with type info accessible, such as `Poco::Dynamic::Var` or `std::any`. For example, `nlohmann::json` or `toml::value` has  `type()` and type trait functions
 ```c++
 is_primitive , is_structured , is_null , is_boolean , is_number , is_number_integer , is_number_unsigned , is_number_float , is_object , is_array , is_string , is_discarded , is_binary
 ```
 
+Alternatively, there is no need to declare a new C++ type Parameter, just use json or toml::value as the Parameter object. to generate the model input ini or fill the ModelInputParameters object.
+
 ```c++
 
-using DT=nlohmann::json;
+//using DT=nlohmann::json;
+using DT=toml::value;
 struct Parameter
 {
 	//  as dict key
