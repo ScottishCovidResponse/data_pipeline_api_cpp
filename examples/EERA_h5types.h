@@ -4,37 +4,21 @@
 #include "toml11/toml.hpp"
 #include "Parameter.h"
 
-#if 0
-#include "../ModelTypes.h"
-#include "../Model.h"
+#if 1
+#include "ModelTypes.h"
 
 #else
-struct InfectionState
+namespace EERAModel
 {
-    int detected = 0;        /*!< Number of newly detected (due to testing or hospitalisation) cases at each time step. */
-    int hospitalised = 0;    /*!< Number of newly detected cases due to their hospitalisation at each time step. */
-    int deaths = 0;          /*!< Overall number of incident deaths due to covid at each time step.  */
-    int hospital_deaths = 0; /*!< Number of incident deaths reported at hospital due to covid at each time step. */
-};
-#endif
-
-/// example complext data to r
-struct ComplexData
-{
-    double scalar;
-    int int_array[3]; // H5::ArrayType, there is padding if alignment == 8
-    //const char *cstr; // H5::StrType string_type(H5::PredType::C_S1, 1);
-    char cstr[7]; // fixed length
-    //std::string str;  // std::string is not trivial copyable
-    InfectionState state;
-
-    ComplexData() {}
-
-    ComplexData(double _scalar, InfectionState _state)
-        : scalar(_scalar), state(_state)
+    struct InfectionState
     {
-    }
-};
+        int detected = 0;        /*!< Number of newly detected (due to testing or hospitalisation) cases at each time step. */
+        int hospitalised = 0;    /*!< Number of newly detected cases due to their hospitalisation at each time step. */
+        int deaths = 0;          /*!< Overall number of incident deaths due to covid at each time step.  */
+        int hospital_deaths = 0; /*!< Number of incident deaths reported at hospital due to covid at each time step. */
+    };
+} // namespace EERAModel
+#endif
 
 //////////////////////// example from toml doc //////////////////////
 namespace ext
@@ -79,6 +63,25 @@ using namespace H5;
 
 namespace EERAModel
 {
+
+    /// example complext data to r
+    struct ComplexData
+    {
+        double scalar;
+        int int_array[3]; // H5::ArrayType, there is padding if alignment == 8
+        //const char *cstr; // H5::StrType string_type(H5::PredType::C_S1, 1);
+        char cstr[7]; // fixed length
+        //std::string str;  // std::string is not trivial copyable
+        InfectionState state;
+
+        ComplexData() {}
+
+        ComplexData(double _scalar, InfectionState _state)
+            : scalar(_scalar), state(_state)
+        {
+        }
+    };
+
     /// TODO: code here must be enclosed by a class, in order to work as head-only library
     CompType ds_type;
     CompType cd_type;

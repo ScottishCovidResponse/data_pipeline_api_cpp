@@ -22,6 +22,8 @@ more doc in university glasgow Team "Files"
 
 https://github.com/ScottishCovidResponse/SCRC-internal/wiki/Model-data-pipeline-interaction
 
+
+
 Python API
 https://github.com/ScottishCovidResponse/data_pipeline_api/tree/master/data_pipeline_api
 
@@ -95,6 +97,12 @@ so I download vitables.3.0.2 source code,  comment out 2 lines in `setup.py` and
 
 ## Installation
 
+This is C++ API is designed to be header-only, while dependency libraries need to be installed, see guide below. This API can be used  as a git submodule, or just copy this repo folder into specific model project, and then include this folder in the project root CMakeLists.txt.
+Or git clone this repo as the sibling folder of model repo, e.g. `EERAModel`, it is just header include directionary to be sorted out in CMake
+
+note: as git module is used, add `--recursive`when clone this repo, i.e. `git clone --recursive this_repo`. read more on using submodule: <https://www.vogella.com/tutorials/GitSubmodules/article.html>
+
+
 ### Code structure
 
 Generic API
@@ -109,9 +117,6 @@ Some header only libraries are downloaded and copied into this repository for th
 + toml.hpp    git submodule 
 + eigen3-hdf5.hpp  download as a copy, with modification
 
-This is C++ API is designed to be header-only, while dependency libraries need to be installed, see guide below. This API can be used  as a git submodule, or just copy this repo folder into specific model project, and then include this folder in the project root CMakeLists.txt.
-
-note: as git module is used, add `--recursive`when clone this repo, i.e. `git clone --recursive this_repo`. read more on using submodule: <https://www.vogella.com/tutorials/GitSubmodules/article.html>
 
 ### Install dependency on Ubuntu 18.04/20.04
 
@@ -147,6 +152,10 @@ Only 2 demo cpp to test out platform cmake configuration.
 
 ## Data pipeline flow 
 
+To get started, I would expected all EERA model input parameter will come in toml file format (restful get / local hdf5), adapted for EERA model if needed.   
+
+HDF5 write is for result, as HDF5 is good for large dataset in IO performance.
+
 
 ### model data flow
 -> download json parameters/dataset (by restful GET API) from central store
@@ -180,7 +189,7 @@ Kristian is working on Data Abstraction Layer
 
 To enable correlation validation by other models,  a proper Result data structure
 
-### Parameter class design
+## Input Parameter class design
 
 `template<typename T> class Parameter` is not preferred, because  mixed type parameter dictionary, such as `std::map<std::string, Parameter>` is desired. Meanwhile, some C++ object can hold value of dynamic types with type info accessible, such as `Poco::Dynamic::Var` or `std::any`. For example, `nlohmann::json` or `toml::value` has  `type()` and type trait functions
 ```c++
@@ -211,12 +220,44 @@ class  ParameterTable;
 
 An adapter design pattern may transform server side paramter table into model-specific input configuration. 
 
+EERA has fixed parameters and distribution parameters
+
+### Data pipeline API
+https://github.com/ScottishCovidResponse/SCRC-internal/wiki/Model-data-pipeline-API-specification
+
+```py
+[point-estimate]
+value = 1.5
+```
+
+https://github.com/ScottishCovidResponse/temporary_data/blob/peter-t-fox/444-add-eera-params-for-staging/temporary/Covid19_EERAModel/fixed-parameters/T_inf/metadata/public/20200612.toml
+```toml
+[source]
+version = "0.1"
+description = "Mean asymptomatic period"
+type = "parameter"
+location = "data/1.toml"
+max_warning = 3
+messages = ["3: point estimate"]
+hash = "xxx"
+```
+
 ### my Questions
-I am not sure about parameter unit for EERA model input parameters, where I can find those unit info?
+I am not sure about parameter unit for EERA model input parameters, where I can find those unit info?  
 
-Is json an accepted file format? 
-is EERA ini format compatible with toml file format?
+> Peter had defined model input parameter
 
+Is json/toml an accepted file format?  store toml as a attribute of HDF5?
+> 
+
+Is EERA ini format compatible with toml file format?
+> 
+
+Can we use python get() and put() file instead of implementing in C++?
+
+### Todo
+
+1. RESTFUL put() 
 
 
 

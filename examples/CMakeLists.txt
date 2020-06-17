@@ -7,7 +7,14 @@ if(ENABLE_HDF5)
         demo_hdf5_dataset
         ${_hdf5_libs}
     )
+    # if this repo is sibling folder of EERA repo/root folder
+    # if this repo is a submodule of EERA, then it should ignore this lines below
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../Covid19_EERAModel")
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../Covid19_EERAModel/src/")
+    endif()
+    
     target_compile_options(demo_hdf5_dataset PRIVATE -Wall -Wextra -Wno-unused)
+    # C++17 is needed to contructor types without constructor
     set_target_properties(demo_hdf5_dataset PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES
