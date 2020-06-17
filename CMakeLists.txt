@@ -133,6 +133,6 @@ endif()
 
 ##############################################################
 if(ENABLE_TEST)
-    #add_subdirectory(tests)  # disable it since there is compiling error
+    add_subdirectory(tests)  # disable it since there is compiling error
     add_subdirectory(examples)  # disable it since there is compiling error
 endif()

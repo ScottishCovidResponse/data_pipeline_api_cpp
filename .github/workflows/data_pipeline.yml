@@ -47,28 +47,28 @@ jobs:
         cmake ..
         make
 
-      # - name: Run unit tests
-      #   run: |
-      #     for f in ./build/bin/test_*; do
-      #       sh ${f}
-      #       if [ $? -eq 0 ]; then
-      #         echo "Unit tests completed successfully"
-      #         exit 0
-      #       else
-      #         echo "Unit tests failed"
-      #         exit 1
-      #       fi
-      #     done
-
-    - name: Run Cpp Check with internal parser
+    - name: Run unit tests
       run: |
-          echo "Running CppCheck on files  with internal parser"
-          for i in *.h examples/*.cpp tests/*.cpp; do 
-            if cppcheck --language=c++ --std=c++11 --error-exitcode=1 $i; then
-              continue
-            else
-              exit 1
-            fi
-          done
+        for f in ./build/bin/*test*; do
+          sh -c "${f}"
+          if [ $? -eq 0 ]; then
+            echo "Unit tests completed successfully"
+            exit 0
+          else
+            echo "Unit tests failed"
+            exit 1
+          fi
+        done
+
+    # - name: Run Cpp Check with internal parser
+    #   run: |
+    #       echo "Running CppCheck on files  with internal parser"
+    #       for i in *.h examples/*.cpp tests/*.cpp; do 
+    #         if cppcheck --language=c++ --std=c++11 --error-exitcode=1 $i; then
+    #           continue
+    #         else
+    #           exit 1
+    #         fi
+    #       done
 
   
