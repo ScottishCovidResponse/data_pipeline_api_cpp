@@ -31,6 +31,8 @@ https://github.com/ScottishCovidResponse/SCRCdataAPI
 Data registry: database schema
 https://github.com/ScottishCovidResponse/data-registry
 
+https://dbdiagram.io/d/5ebbb29439d18f5553ff207e
+
 ### Plan for C++ API
 
 1. component selection, cmake setup, and test locally
@@ -169,28 +171,37 @@ To enable correlation validation by other models,  a proper Result data structur
 
 ### Parameter class design
 
-json can hold value of dynamic types?
+`template<typename T> class Parameter` is not preferred, because  mixed type parameter dictionary, such as `std::map<std::string, Parameter>` is desired. Meanwhile, some C++ object can hold value of dynamic types with type info accessible, such as `Poco::Dynamic::Var` or `std::any`. For example, `nlohmann::json` has  `type()` and type trait functions
 ```c++
-// template<typename T>   std::any may be better
-using DT=std::any;
+is_primitive , is_structured , is_null , is_boolean , is_number , is_number_integer , is_number_unsigned , is_number_float , is_object , is_array , is_string , is_discarded , is_binary
+```
+
+```c++
+
+using DT=nlohmann::json;
 struct Parameter
 {
 	//  as dict key
-	std::string name, // short name, potential can be used to gen code,
-	std::string desc, // description/ doc string
+	std::string name; // short name, potential can be used to gen code,
+	std::string desc; // description/ doc string
 	// if std::any is used, then data type enum/string is needed, 
 	// or detect from json, while advanced data type std::vector<ET>
-	DT value,  // T any type supported by json, can be std::vector<ET>
-	std::string unit,  // empty if it is a non-unit 
+	DT value;  // T any type supported by json, can be std::vector<ET>
+	std::string unit;  // empty if it is a non-unit 
 };
 
-std::map<std::string, Parameter> param;
+// parameter table, group
+class  ParameterTable;
 // generate model input need Input Parameter data structures in ModelTypes.h
 ```
-my Questions:
+
+An adapter design pattern may transform server side paramter table into model-specific input configuration. 
+
+### my Questions
 I am not sure about parameter unit for EERA model input parameters, where I can find those unit info?
 
 Is json an accepted file format? 
+is EERA ini format compatible with toml file format?
 
 
 
