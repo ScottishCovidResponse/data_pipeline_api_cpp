@@ -7,7 +7,7 @@ enable_language(CXX)
 option(ENABLE_HDF5 "Enable HDF5 support" ON)
 option(ENABLE_TOML "Enable toml configuraton file support" ON)
 option(ENABLE_EIGEN "Enable Eigen vector and matrix support" OFF)
-option(ENABLE_NETWORKING "Enable HDF5 support" ON)
+option(ENABLE_NETWORKING "Enable RESTFUL network get and put support" OFF)
 
 option(ENABLE_CODE_COVERAGE "Enable coverage reporting" OFF)
 option(ENABLE_TEST "use unit test module" ON)
@@ -62,12 +62,13 @@ if(ENABLE_NETWORKING)
     find_package(Poco REQUIRED COMPONENTS Foundation Util Net NetSSL Crypto JSON)
     include_directories(${Poco_INCLUDE_DIRS})
 
-    # openssl dev must be installed, but not needed to find the package except APPLE
+    if(APPLE)  #  APPLE can not find  openssl installed from brew
+    # openssl-dev must be installed, but not needed to find the package except APPLE
     find_package(OpenSSL REQUIRED)
     include_directories(${OPENSSL_INCLUDE_DIR})
     message("OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
     message("OpenSSL libraries: ${OPENSSL_LIBRARIES}")
-
+    endif()
 
     if (UNIX)
         if(NOT APPLE) # centos, rhel7 may have problem in Poco_LIBRARIES

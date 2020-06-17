@@ -23,17 +23,39 @@ more doc in university glasgow Team "Files"
 https://github.com/ScottishCovidResponse/SCRC-internal/wiki/Model-data-pipeline-interaction
 
 
-
 Python API
 https://github.com/ScottishCovidResponse/data_pipeline_api/tree/master/data_pipeline_api
 
 R data API
 https://github.com/ScottishCovidResponse/SCRCdataAPI
 
+
+### Data store/registry: http://data.scrc.uk/
+
 Data registry: database schema
 https://github.com/ScottishCovidResponse/data-registry
 
+meta data definition diagram
 https://dbdiagram.io/d/5ebbb29439d18f5553ff207e
+
+ @Richard Blackwell is working on putting simple_network_sim files in there at the moment
+DataObjects:
+Data Store  
+Source
+Source Version
+Data Product
+Processing Script
+Processing Script Version
+Data Product Version
+Data Product Version Component
+Model
+Model Version
+Model Run
+
+### Projects/models use C++ Data Pipeline API
++ EERAModel
++ covid-sim
++ CoronaBICI 
 
 ### Plan for C++ API
 
@@ -50,15 +72,23 @@ https://dbdiagram.io/d/5ebbb29439d18f5553ff207e
   define h5 data types, see example EERA_h5types.h
   using macro to switch between current local csv files IO, and HDF5 IO
 
-4. model cross-validation: 
+4. result writing
+C++ may write some result into HDF5, but post-processing should not be part of C++ pipeline. 
+ Image can be pushed into HDF5, but log file may be treated as string
+ Parameter are treated as HDF5::Table, or just as toml file
+ Log can be store a string attribute
+
+Post-processing can be done in another language like R or python
+
+5. result push to data registry and model cross-validation: 
   the key task is the data structure definition for parameter and result
 
-5. how to pack/write post-processing result(currently in R by Thibaud) 
- Image can be pushed into HDF5, but log file may be treated as string
- Parameter are treated as HDF5::Table
+
+
 
 
 ## Third-party library selection
+Since download and upload is not part of data pipeline, networking RESTFUL C++ will be removed
 + poco for networking: the only lib I have used, 
   other: restfulcpp, etc 
   header only: https://github.com/yhirose/cpp-httplib
@@ -66,7 +96,7 @@ https://dbdiagram.io/d/5ebbb29439d18f5553ff207e
 + json.hpp header only C++ json: extensible to decode/encode user types
 + HDF5: for result packing
 + toml11: header only lib: https://github.com/ToruNiina/toml11#converting-a-table
-+ python style C++17 argparse: https://github.com/p-ranav/argparse
+
 
 ### HDF5 C++ libraries
 
@@ -142,7 +172,9 @@ If brew is not installed yet, run `/bin/bash -c "$(curl -fsSL https://raw.github
 
 Install dependencies: `brew update && brew install eigen poco hdf5 openssl`
 
-On macos-latest (), the default HDF5 version is 1.12. It is possible to install `hdf5@1.10`, but cmake failed to find it, version 1.12 is used.
+On macos-latest (?), the default HDF5 version is 1.12. It is possible to install `hdf5@1.10`, but cmake failed to find it, version 1.12 is used.
+
+cmake could not find OpenSSL installation, however, networking code has been turn off, will be removed later.
 
 ###  build with cmake
 
@@ -159,6 +191,7 @@ HDF5 write is for result, as HDF5 is good for large dataset in IO performance.
 
 ### model data flow
 -> download json parameters/dataset (by restful GET API) from central store
+ this will be not part of C++ data pipeline API, it could be python.
 
 -> parse parameters into model-specific config file (for the time being)/C++ data structure as model input (later) 
 -> prepare dataset into model-specific input file (for the time being)/C++ data structure as model input (later)  
@@ -255,9 +288,6 @@ Is EERA ini format compatible with toml file format?
 
 Can we use python get() and put() file instead of implementing in C++?
 
-### Todo
-
-1. RESTFUL put() 
 
 
 

@@ -10,7 +10,8 @@ if(ENABLE_HDF5)
     # if this repo is sibling folder of EERA repo/root folder
     # if this repo is a submodule of EERA, then it should ignore this lines below
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../Covid19_EERAModel")
-    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../Covid19_EERAModel/src/")
+        add_definitions("-DDATA_USE_EERA")
+        include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../Covid19_EERAModel/src/")
     endif()
     
     target_compile_options(demo_hdf5_dataset PRIVATE -Wall -Wextra -Wno-unused)

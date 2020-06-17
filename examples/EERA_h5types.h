@@ -4,7 +4,7 @@
 #include "toml11/toml.hpp"
 #include "Parameter.h"
 
-#if 1
+#ifdef DATA_USE_EERA
 #include "ModelTypes.h"
 
 #else

@@ -13,11 +13,13 @@ using namespace EERAModel;
 int main()
 {
 
+/// this section demo parsing model input parameter from toml files
 #if DATA_USE_TOML
 
     toml::value tvalue{{"a", 1}, {"b", 2.3}, {"c", "message"}};
     // there must be a better way for cast
-    ext::foo ef = toml::from<ext::foo>::from_toml(tvalue);
+    //ext::foo ef = toml::from<ext::foo>::from_toml(tvalue);
+    auto ef = toml::get<ext::foo>(tvalue);
     std::cout << "toml cast into C++ type: " << ef.c << std::endl;
     assert(ef.a == 1);
 
@@ -25,6 +27,7 @@ int main()
     toml::value t_value1(ef);
 #endif
 
+    /// this part demo model result writting into HDF5
     std::shared_ptr<H5File> file = std::make_shared<H5File>(H5FILE_NAME, H5F_ACC_TRUNC);
 
     init_h5_type();

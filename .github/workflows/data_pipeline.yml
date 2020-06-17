@@ -8,6 +8,8 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
 
       - name: Install Brew
         run : /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
@@ -28,6 +30,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: true
 
     - name: Install packages
       run: sudo apt-get update && sudo apt-get install -y libssl-dev libpoco-dev libhdf5-dev libeigen3-dev
