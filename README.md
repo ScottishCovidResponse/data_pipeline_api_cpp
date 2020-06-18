@@ -96,7 +96,11 @@ Since download and upload is not part of data pipeline, networking RESTFUL C++ w
 + json.hpp header only C++ json: extensible to decode/encode user types
 + HDF5: for result packing
 + toml11: header only lib: https://github.com/ToruNiina/toml11#converting-a-table
++ csv: header only https://github.com/vincentlaucsb/csv-parser#single-header
 
+A more advanced C++ lib for data table as in R Table or Pandas.DataFrame
++ [xframe, towards a C++ dataframe](https://medium.com/@johan.mabille/xframe-towards-a-c-dataframe-26e1ccde211b)
++ <https://github.com/hosseinmoein/DataFrame>
 
 ### HDF5 C++ libraries
 
