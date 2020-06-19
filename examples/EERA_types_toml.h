@@ -1,7 +1,7 @@
 #pragma once
 
 #include "toml11/toml.hpp"
-#include "Parameter.h"
+#include "ParameterTypes.h"
 
 #include "EERA_types.h"
 
