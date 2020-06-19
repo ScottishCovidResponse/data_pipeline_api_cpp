@@ -1,10 +1,10 @@
 if(ENABLE_HDF5)
 
-    add_executable(demo_hdf5_dataset
-    demo_hdf5_dataset.cpp
+    add_executable(EERA_pipeline_demo
+    EERA_pipeline_demo.cpp
     )
     target_link_libraries(
-        demo_hdf5_dataset
+        EERA_pipeline_demo
         ${_hdf5_libs}
     )
     # if this repo is sibling folder of EERA repo/root folder
@@ -14,9 +14,9 @@ if(ENABLE_HDF5)
         include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../Covid19_EERAModel/src/")
     endif()
     
-    target_compile_options(demo_hdf5_dataset PRIVATE -Wall -Wextra -Wno-unused)
+    target_compile_options(EERA_pipeline_demo PRIVATE -Wall -Wextra -Wno-unused)
     # C++17 is needed to contructor types without constructor
-    set_target_properties(demo_hdf5_dataset PROPERTIES
+    set_target_properties(EERA_pipeline_demo PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO

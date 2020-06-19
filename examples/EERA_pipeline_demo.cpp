@@ -1,6 +1,7 @@
 #include "../DataPipeline.h"
 
-#include "EERA_h5types.h"
+#include "EERA_types_toml.h"
+#include "EERA_hw_h5types.h" // hand-written boiler-plate code
 using namespace EERAModel;
 
 #include <cassert> // will be disabled if NDEBUG macro is defined
@@ -30,15 +31,15 @@ int main()
     /// this part demo model result writting into HDF5
     std::shared_ptr<H5File> file = std::make_shared<H5File>(H5FILE_NAME, H5F_ACC_TRUNC);
 
-    init_h5_type();
+    init_h5types();
     std::vector<InfectionState> values;
     InfectionState v1 = {1, 2, 3, 4}; // Aggregate initialization in C++17
     InfectionState v2 = {10, 20, 30, 40};
     values.push_back(v1); // Aggregate initialization inside push_back() needs C++17
     values.push_back(v2);
 
-    data::IO::WriteVector<InfectionState>(values, file, DS_NAME, ds_type);
-    auto va = data::IO::ReadVector<InfectionState>(file, DS_NAME, ds_type);
+    data::IO::WriteVector<InfectionState>(values, file, DS_NAME, InfectionState_h5type);
+    auto va = data::IO::ReadVector<InfectionState>(file, DS_NAME, InfectionState_h5type);
     assert(va.size() == 2);
 
     std::vector<ComplexData> cvalues;
@@ -47,10 +48,10 @@ int main()
     ComplexData cd2(2.0, v2); //  = {2.0, {4, 5, 6}, "complex", v2};
     cvalues.push_back(cd1);
     cvalues.push_back(cd2);
-    data::IO::WriteVector<ComplexData>(cvalues, file, "complex_data", cd_type);
+    data::IO::WriteVector<ComplexData>(cvalues, file, "complex_data", ComplexData_h5type);
     // Although, the code compile, but there is error! stack smashing detected
     // std::cout << v.cstr  << std::endl;
-    auto cv = data::IO::ReadVector<ComplexData>(file, "complex_data", cd_type);
+    auto cv = data::IO::ReadVector<ComplexData>(file, "complex_data", ComplexData_h5type);
     for (const ComplexData &v : cv)
     {
         std::cout << v.state.deaths << std::endl;
