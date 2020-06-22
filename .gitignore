@@ -1,4 +1,8 @@
 build/*
 PM/*
 PM
+EERA
+EERA/*
+
 .vscode/*
+*.pyc

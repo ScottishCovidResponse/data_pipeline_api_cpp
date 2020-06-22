@@ -11,7 +11,7 @@ namespace EERAModel
     /// TODO: code here must be enclosed by a class, in order to work as head-only library
     CompType InfectionState_h5type;
     H5::CompType CDataStruct_h5type(sizeof(CDataStruct));
-    CompType ComplexData_h5type;
+    CompType ComplexData_h5type(sizeof(ComplexData));
     CompType particle_type;
 
     /// boiler-plate code, to define a new user type
@@ -23,13 +23,6 @@ namespace EERAModel
         InfectionState_h5type.insertMember("hospitalised", HOFFSET(InfectionState, hospitalised), PredType::NATIVE_INT);
         InfectionState_h5type.insertMember("deaths", HOFFSET(InfectionState, deaths), PredType::NATIVE_INT);
         InfectionState_h5type.insertMember("hospital_deaths", HOFFSET(InfectionState, hospital_deaths), PredType::NATIVE_INT);
-
-        //    particle_type = CompType(sizeof(particle));
-        //     // use H5::PredType::NATIVE_FLOAT, not H5::H5T_NATIVE_FLOAT  otherwise runtime error
-        //     particle_type.insertMember("nsse_cases", HOFFSET(InfectionState, detected), PredType::NATIVE_INT);
-        //     particle_type.insertMember("hospitalised", HOFFSET(InfectionState, hospitalised), PredType::NATIVE_INT);
-        //     particle_type.insertMember("deaths", HOFFSET(InfectionState, deaths), PredType::NATIVE_INT);
-        //     particle_type.insertMember("hospital_deaths", HOFFSET(InfectionState, hospital_deaths), PredType::NATIVE_INT);
 
         hid_t strtype = H5Tcopy(H5T_C_S1);
         H5Tset_size(strtype, H5T_VARIABLE);

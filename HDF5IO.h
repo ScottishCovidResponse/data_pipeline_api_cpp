@@ -58,7 +58,7 @@ namespace data
          * 
          * */
         template <class T, typename = typename std::enable_if<std::is_trivially_copyable<T>::value>::type>
-        static bool WriteAttribute(const T val, std::shared_ptr<DATA_H5Location> h5loc,
+        static bool WriteAttribute(const T val, std::shared_ptr<H5Object> h5loc,
                                    std::string attribute_name, const DataType &dtype)
         {
             Attribute attrib(h5loc->createAttribute(attribute_name, dtype, H5S_SCALAR));
@@ -84,7 +84,7 @@ namespace data
          * */
         // ,typename = typename std::enable_if<!std::is_trivially_copyable<T>::value>::type
         template <class T>
-        static bool WriteAttribute(const T &val, std::shared_ptr<DATA_H5Location> h5loc,
+        static bool WriteAttribute(const T &val, std::shared_ptr<H5Object> h5loc,
                                    std::string attribute_name, const DataType &dtype,
                                    Serializer<T> serializer)
         {
