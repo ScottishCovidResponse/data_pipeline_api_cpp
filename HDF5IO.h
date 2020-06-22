@@ -18,7 +18,7 @@ using namespace H5;
 #if H5_VERSION_LE(1, 10, 0)
 #define DATA_H5Location H5::CommonFG
 #else
-#define DATA_H5Location H5::H5Location
+#define DATA_H5Location H5::Group
 #endif
 
 /// TODO: namespace naming needs reconsideration
@@ -32,6 +32,62 @@ namespace data
     class IO
     {
     public:
+        /**
+         * @brief raw buffer writing out, assuming little endian, alignment
+         * 
+         * @param vec data to write  of type `const std::vector<T>`
+         * @param h5loc handle/pointer to H5File or H5::Group
+         * @param attribute_name attribute name
+         * @param dtype hdf5 data type definition (metadata)
+         * 
+         * @return true if successful 
+         * 
+         * */
+        template <class T, typename = typename std::enable_if<std::is_trivially_copyable<T>::value>::type>
+        static bool WriteAttribute(const T val, std::shared_ptr<DATA_H5Location> h5loc,
+                                   std::string attribute_name, const DataType &dtype)
+        {
+            hsize_t dims[1] = {1};
+            DataSpace space(1, dims);
+            Attribute attrib(h5loc->createAttribute(attribute_name, dtype, space));
+
+            const void *buf = std::addressof(val);
+            attrib.write(dtype, buf); //  this write() applies to field/member DataType
+
+            space.close();
+            attrib.close();
+            return true;
+        }
+
+        /**
+         * @brief raw buffer writing out, assuming little endian, alignment
+         * 
+         * @param vec data to write  of type `const std::vector<T>`
+         * @param h5loc handle/pointer to H5File or H5::Group
+         * @param attribute_name attribute name
+         * @param dtype hdf5 data type definition (metadata)
+         * @param serializer std::function<bool(const T&, Attribute&)>
+         * 
+         * @return true if successful 
+         * 
+         * */
+        // ,typename = typename std::enable_if<!std::is_trivially_copyable<T>::value>::type
+        template <class T>
+        static bool WriteAttribute(const T &val, std::shared_ptr<DATA_H5Location> h5loc,
+                                   std::string attribute_name, const DataType &dtype,
+                                   std::function<bool(const T &, Attribute &)> serializer)
+        {
+            hsize_t dims[1] = {1};
+            DataSpace space(1, dims);
+            Attribute attrib(h5loc->createAttribute(attribute_name, dtype, space));
+
+            serializer(val, attrib);
+
+            space.close();
+            attrib.close();
+            return true;
+        }
+
         /**
          * @brief raw buffer writing out, assuming little endian, alignment
          * 
