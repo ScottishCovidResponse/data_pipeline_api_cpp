@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <type_traits> // C++11
+#include <functional>
 
 #include <H5Cpp.h>
 using namespace H5;
@@ -32,6 +33,19 @@ namespace data
     class IO
     {
     public:
+        template <class T>
+        using Serializer = std::function<bool(const T &, H5Object &)>;
+        template <class T>
+        using Deserializer = std::function<T(const H5Object &)>;
+
+        // small helper
+        void writeStringAttribute(H5Object *o, std::string key, std::string value)
+        {
+            StrType t_str = H5::StrType(H5::PredType::C_S1, value.size() + 1);
+            Attribute at = o->createAttribute(key.c_str(), t_str, H5S_SCALAR);
+            at.write(t_str, value.c_str());
+        }
+
         /**
          * @brief raw buffer writing out, assuming little endian, alignment
          * 
@@ -47,14 +61,11 @@ namespace data
         static bool WriteAttribute(const T val, std::shared_ptr<DATA_H5Location> h5loc,
                                    std::string attribute_name, const DataType &dtype)
         {
-            hsize_t dims[1] = {1};
-            DataSpace space(1, dims);
-            Attribute attrib(h5loc->createAttribute(attribute_name, dtype, space));
+            Attribute attrib(h5loc->createAttribute(attribute_name, dtype, H5S_SCALAR));
 
             const void *buf = std::addressof(val);
             attrib.write(dtype, buf); //  this write() applies to field/member DataType
 
-            space.close();
             attrib.close();
             return true;
         }
@@ -66,7 +77,7 @@ namespace data
          * @param h5loc handle/pointer to H5File or H5::Group
          * @param attribute_name attribute name
          * @param dtype hdf5 data type definition (metadata)
-         * @param serializer std::function<bool(const T&, Attribute&)>
+         * @param serializer std::function<bool(const T&, H5::Object&)>
          * 
          * @return true if successful 
          * 
@@ -75,7 +86,7 @@ namespace data
         template <class T>
         static bool WriteAttribute(const T &val, std::shared_ptr<DATA_H5Location> h5loc,
                                    std::string attribute_name, const DataType &dtype,
-                                   std::function<bool(const T &, Attribute &)> serializer)
+                                   Serializer<T> serializer)
         {
             hsize_t dims[1] = {1};
             DataSpace space(1, dims);
@@ -98,19 +109,30 @@ namespace data
          * 
          * @return true if successful 
          * 
+         * todo:  serializer
+         *   is_contiguous  if T is numeric type, , typename = typename std::enable_if<std::is_trivially_copyable<T>::value>::type
+         * 
          * */
-        template <class T, typename = typename std::enable_if<std::is_trivially_copyable<T>::value>::type>
+        template <class T>
         static bool WriteVector(const std::vector<T> vec, std::shared_ptr<DATA_H5Location> h5loc,
-                                std::string dataset_name, const DataType &dtype)
+                                std::string dataset_name, const DataType &dtype, Serializer<T> serializer = nullptr)
         {
             hsize_t dims[1] = {vec.size()};
             DataSpace space(1, dims);
             DataSet dataset(h5loc->createDataSet(dataset_name, dtype, space));
 
+            // if buffer is contiguous, there is no need for a per element copy
             for (const auto &v : vec)
             {
-                const void *buf = std::addressof(v);
-                dataset.write(buf, dtype);
+                if (!serializer)
+                {
+                    const void *buf = std::addressof(v);
+                    dataset.write(buf, dtype); // todo: will auto move pos cursor?
+                }
+                else
+                {
+                    // todo
+                }
             }
             space.close();
             dataset.close();
@@ -129,10 +151,12 @@ namespace data
          * Template parameter `T` must be `std::is_trivially_copyable`
          * in order to use `memcpy()` to initialize class T
          * 
+         * todo: , typename = typename std::enable_if<std::is_trivially_copyable<T>::value>::type
+         *  then give the default val as nullptr
          * */
-        template <class T, typename = typename std::enable_if<std::is_trivially_copyable<T>::value>::type>
+        template <class T>
         static const std::vector<T> ReadVector(std::shared_ptr<DATA_H5Location> h5loc, std::string dataset_name,
-                                               const DataType &dtype)
+                                               const DataType &dtype, Deserializer<T> deserializer = nullptr)
         {
             DataSet dataset(h5loc->openDataSet(dataset_name));
 
@@ -142,11 +166,20 @@ namespace data
             auto rank = space.getSimpleExtentDims(dims, NULL); // rank = 1
             const size_t length = dims[0];
             std::vector<T> vec;
+
+            // if buffer is contiguous, all-in-one copy is possible
+            // but it makes no diff per element or copy
+
             vec.reserve(length);
             for (size_t i = 0; i < length; i++)
             {
                 T tmp;
-                dataset.read(&tmp, dtype); // memcpy()
+                if (!deserializer)
+                    dataset.read(&tmp, dtype); // memcpy()  todo: will auto move pos cursor?
+                else
+                {
+                    //todo
+                }
                 vec.emplace_back(tmp);
             }
             space.close();
@@ -155,7 +188,8 @@ namespace data
         }
 
         /**
-         * @brief raw buffer writing out, assuming little endian, alignment
+         * @brief write 2D array into a H5::DataSet
+         *  template parameter T  can be scalar or any trivially_copyable user type
          * 
          * @param mat data to write  of type `const std::vector<std::vector<T>>`
          * @param h5loc handle/pointer to H5File
@@ -196,7 +230,8 @@ namespace data
         }
 
         /**
-         * @brief raw buffer writing out, assuming little endian, alignment
+         * @brief read 2D array from a H5::DataSet
+         *  template parameter T  can be scalar or any trivially_copyable user type
          * 
          * @param h5loc handle/pointer to H5File
          * @param dataset_name dataset name

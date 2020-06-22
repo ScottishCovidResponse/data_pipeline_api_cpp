@@ -2,30 +2,11 @@
 
 #if DATA_USE_EERA
 #include "ModelTypes.h"
-
-namespace EERAModel
-{
-    /// example complex type data to write into HDF5,  not a realist data type
-    struct ComplexData
-    {
-        double scalar;
-        int int_array[3]; // H5::ArrayType, there is padding if alignment == 8
-        //const char *cstr; // H5::StrType string_type(H5::PredType::C_S1, 1);
-        char cstr[7]; // fixed length
-        //std::string str;  // std::string is not trivial copyable
-        InfectionState state;
-
-        ComplexData() {}
-
-        ComplexData(double _scalar, InfectionState _state)
-            : scalar(_scalar), state(_state)
-        {
-        }
-    };
-} // namespace EERAModel
 #else
 // copy some basic types for testing
 #include <vector>
+#include <string>
+#include <array>
 
 namespace EERAModel
 {
@@ -58,3 +39,41 @@ namespace EERAModel
 } // namespace EERAModel
 
 #endif
+
+namespace EERAModel
+{
+    struct CDataStruct
+    {
+        int integer;
+        double scalar;
+        float scalar_array[3];
+    };
+
+    /// example complex type data to write into HDF5,  not a realist data type
+    struct ComplexData
+    {
+        double scalar;
+        int int_array[2];   // H5::ArrayType, there is padding if alignment == 8
+        char char_array[8]; // fixed length C string buffer
+
+//#ifdef DATA_USE_HDF5_GENERATOR
+#if 0
+        //const char *c_str; // H5::StrType string_type(H5::PredType::C_S1, 1);
+        std::string std_str; // std::string is not trivial copyable
+
+        std::array<double, 3> std_array;
+        std::vector<int> vlen_vector; // variable length array/vector
+
+        //int &int_reference;  // must init in ctor
+        double *scalar_pointer;
+#endif
+        CDataStruct ds;
+
+        ComplexData() {}
+
+        ComplexData(double _scalar, CDataStruct _ds)
+            : scalar(_scalar), ds(_ds)
+        {
+        }
+    };
+} // namespace EERAModel

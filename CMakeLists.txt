@@ -5,8 +5,9 @@ project(covid19-cxx-data-management)
 enable_language(CXX)
 
 option(ENABLE_HDF5 "Enable HDF5 support" ON)
+option(ENABLE_HDF5_GENERATOR "Enable python genetor to gen HDF5 types" OFF)
 option(ENABLE_TOML "Enable toml configuraton file support" ON)
-option(ENABLE_EIGEN "Enable Eigen vector and matrix support" OFF)
+option(ENABLE_EIGEN "Enable Eigen vector and matrix support" ON)
 option(ENABLE_NETWORKING "Enable RESTFUL network get and put support" OFF)
 
 option(ENABLE_CODE_COVERAGE "Enable coverage reporting" OFF)
@@ -39,6 +40,11 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 ##########################################################
+if(ENABLE_HDF5_GENERATOR)
+    add_definitions("-DDATA_USE_HDF5_GENERATOR")
+    # run command to generate some code
+endif()
+
 if(ENABLE_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	message(STATUS "Including Code Coverage")
 	set(COVERAGE_COMPILER_FLAGS "-g -fprofile-arcs -ftest-coverage")
