@@ -283,11 +283,15 @@ class hdf5_generator(code_generator):
 if __name__ == "__main__":
 
     input_file = "../examples/CodeGen_types.h"
-    namespace = "EERAModel"
-    namespace = "CodeGen"
+
     if len(sys.argv) >= 2:
         input_file = sys.argv[1]
 
+    # tmp
+    if input_file.find("EERA") >= 0:
+        namespace = "EERAModel"
+    else:
+        namespace = "CodeGen"
     if not os.path.exists(input_file):
         raise Exception(
             f"{input_file} does not exist, check filename and current working directory"

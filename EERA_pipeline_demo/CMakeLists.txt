@@ -1,15 +1,14 @@
 if(ENABLE_HDF5)
 
-    add_executable(CodeGen_demo
-    CodeGen_demo.cpp
+    if(ENABLE_HDF5_GENERATOR)
+    execute_process(
+        COMMAND python3 ${PROJECT_SOURCE_DIR}/code_generator/h5type_generator.py "EERA_types.h"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
-    target_link_libraries(
-        CodeGen_demo
-        ${_hdf5_libs}
-    )
+    endif()
 
     add_executable(EERA_pipeline_demo
-    EERA_pipeline_demo.cpp
+        EERA_pipeline_demo.cpp
     )
     target_link_libraries(
         EERA_pipeline_demo

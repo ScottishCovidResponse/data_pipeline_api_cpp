@@ -1,4 +1,4 @@
-#include "../DataPipeline.h"
+#include "DataPipeline.h"
 
 #include "EERA_types_toml.h"
 #ifdef DATA_USE_HDF5_GENERATOR

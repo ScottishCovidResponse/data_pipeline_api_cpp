@@ -15,9 +15,9 @@ option(ENABLE_TEST "use unit test module" ON)
 
 ######################################################
 # it can be used by subdirectory cmakelist.txt
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 # sal_signal.h moved to examples folder
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/examples")
+#include_directories("${CMAKE_CURRENT_SOURCE_DIR}/EERA_pipeline_demo")
 # for json.hpp, catch.h
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party")
 # header-only library toml11 as submodule in third-party folder
@@ -40,10 +40,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 ##########################################################
-if(ENABLE_HDF5_GENERATOR)
-    add_definitions("-DDATA_USE_HDF5_GENERATOR")
-    # run command to generate some code
-endif()
 
 if(ENABLE_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	message(STATUS "Including Code Coverage")
@@ -138,7 +134,14 @@ if(ENABLE_HDF5)
 endif()
 
 ##############################################################
+if(ENABLE_HDF5_GENERATOR)
+    add_definitions("-DDATA_USE_HDF5_GENERATOR")
+    add_subdirectory("demo")
+    # run command to generate some code
+endif()
+
+add_subdirectory("EERA_pipeline_demo")
+
 if(ENABLE_TEST)
     add_subdirectory(tests)  # disable it since there is compiling error
-    add_subdirectory(examples)  # disable it since there is compiling error
 endif()
