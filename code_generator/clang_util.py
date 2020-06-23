@@ -1,10 +1,10 @@
 import os.path
 import clang.cindex as cx
+from clang.cindex import TypeKind, CursorKind
 
 # install libclang-6, must be version 6 as the time of writing in 2020
 cx.Config.set_library_file("/usr/lib/llvm-6.0/lib/libclang.so.1")
 
-from clang.cindex import TypeKind, CursorKind
 
 # Cymbal makes it easy to add functionality missing from libclang Python bindings
 # pybinder for pyocct has  clangext.py for monkey_patch extension the clang.module
@@ -16,6 +16,14 @@ def get_code(cursor):
     for t in cursor.get_tokens():
         ts.append(t.spelling)
     return "".join(ts)
+
+
+def get_template_arguments(code):
+    # template parameters list extracted from field decl's source code
+    start = code.find("<") + 1
+    end = code.rfind(">")
+    all_args = code[start:end].split(",")
+    return [a.strip() for a in all_args]
 
 
 # can be further appended, assuming it is template class,
@@ -43,6 +51,7 @@ def find_all(a_str, sub):
     return pos
 
 
+## ############### field decl type detection ##################
 def is_vlen_array(field_decl):
     '''
     TypeKind.POINTER
@@ -52,9 +61,7 @@ def is_vlen_array(field_decl):
             return conf.lib.clang_Cursor_getTemplateArgumentType(self, num)
     '''
     decl_code = get_code(field_decl)
-    return (
-        decl_code.find("std::vector<") >= 0 and len(find_all(decl_code, "vector<")) == 1
-    )
+    return decl_code.find("std::vector<") >= 0 and len(find_all(decl_code, "vector<")) == 1
 
 
 def is_xtensor_matrix(field_decl):
@@ -120,9 +127,8 @@ def is_cstr_string(field_decl):
     return False
 
 
-# def is_template_type(ctype):
-#    #return ctype.get_num_template_arguments() != -1
-#    return get_code(ctype.parent()).find("")
+def is_template(decl):
+    return hasattr(decl, "type") and decl.type.get_num_template_arguments() != -1
 
 
 def is_std_string(field_decl):
@@ -134,3 +140,26 @@ def is_builtin_type(field_decl):
     # bug: all template are detected as builtin type Int, why?
     v = field_decl.type.kind.value
     return v >= TypeKind.BOOL.value and v <= TypeKind.LONGDOUBLE.value
+
+
+######################################################
+# helpers for visiting the AST recursively
+def visit(node, func):
+    func(node)
+    for c in node.get_children():
+        visit(c, func)
+
+
+def print_ast(node):
+    # show the AST tree
+
+    def visit_depth(node, func, depth=0):
+        # print(type(node))
+        func(node, depth)
+        for c in node.get_children():
+            visit_depth(c, func, depth + 1)
+
+    def ast_printer(node, depth):
+        print(" " * depth, node.kind, node.spelling)
+
+    visit_depth(node, ast_printer)

@@ -61,6 +61,23 @@ namespace EigenHDF5
     };
 
     // integer types
+    template <>
+    struct DatatypeSpecialization<char>
+    {
+        static inline const H5::DataType *get(void)
+        {
+            return &H5::PredType::NATIVE_CHAR;
+        }
+    };
+
+    template <>
+    struct DatatypeSpecialization<unsigned char>
+    {
+        static inline const H5::DataType *get(void)
+        {
+            return &H5::PredType::NATIVE_UCHAR;
+        }
+    };
 
     template <>
     struct DatatypeSpecialization<short>

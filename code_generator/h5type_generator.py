@@ -71,17 +71,19 @@ class hdf5_generator(code_generator):
 
     def __init__(self, input_header, output_header, ns_name=""):
         super(hdf5_generator, self).__init__(input_header, output_header, ns_name)
-        h5_headers = """#include <H5Cpp.h>
+        h5_headers = f"""#include <H5Cpp.h>
+        #include "{self.input_header_file}"
         #include "eigen3-hdf5.hpp"
         #define TO_H5T(type_name) \
-        *EigenHDF5::DatatypeSpecialization<type_name>::get()
+        (*EigenHDF5::DatatypeSpecialization<type_name>::get())
         """
         self.header_codes.append(h5_headers)
         self.sio_codes = []
         self.init_codes = ["/// this code section init instances, put into cpp file"]
+        # print_ast(self.root_cursor)
 
     def prepare(self):
-        self.init_codes.append(f"void init_h5types(){{")
+        self.init_codes.append("void init_h5types(){")
 
     def post(self):
         self.init_codes.append("\n}  // end of function init_h5types() \n")
@@ -128,10 +130,11 @@ class hdf5_generator(code_generator):
         # todo: std::vector<T> using vlen_type,
         # a per-field write serializer() is needed, inject meta data as Attribute like type
 
+        el_type_name = get_template_arguments(get_code(field))[0]
         _h5type_name = f"{class_name}_{field.spelling}_h5type"
-        el_h5type_name = f"TO_H5T({field.type.spelling})"
+        el_h5type_name = f"TO_H5T({el_type_name})"
         _template = f"""
-        auto {vlen_h5type_name} = H5::VarLenType({el_h5type_name});
+        auto {_h5type_name} = H5::VarLenType({el_h5type_name});
         {class_name}_h5type.insertMember(\"{field.spelling}\", 
             HOFFSET({class_name}, {field.spelling}), {_h5type_name});"""
 
@@ -144,14 +147,15 @@ class hdf5_generator(code_generator):
         dim = 1  # 1D array
         array_field_name = array_field.spelling
         if is_std_array(array_field):
-            # not working, regex
-            array_size = array_field.get_template_argument_value(1)
-            el_type_name = array_field.get_template_argument_type(0).spelling
+            # not working for `get_template_argument_value`
+            # array_size = array_field.get_template_argument_value(1)
+            # el_type_name = array_field.get_template_argument_type(0).spelling
+            el_type_name, array_size = get_template_arguments(get_code(array_field))
         else:
             array_size = array_field.type.element_count
             el_type_name = array_field.type.element_type.spelling
 
-        dim_array_expr = "{%d}" % array_size
+        dim_array_expr = f"{{{array_size}}}"
         dim_name = f"{class_name}_{array_field_name}_dims"
         el_h5type_name = f"TO_H5T({el_type_name})"
         array_h5type_name = f"{class_name}_{array_field_name}_h5type"
@@ -239,8 +243,8 @@ class hdf5_generator(code_generator):
             self.sio_codes.append(self.generate_serializer_impl(cls))
             self.sio_codes.append(self.generate_deserializer_impl(cls))
 
-            # for not pod class, sizeof() does not reflect the storage size
-            type_decl = f"H5::CompType {class_name}_h5type();"
+            # FIXME for not pod class, sizeof() does not reflect the storage size
+            type_decl = f"H5::CompType {class_name}_h5type(sizeof({class_name}));"
         else:
             type_decl = f"H5::CompType {class_name}_h5type(sizeof({class_name}));"
         self.decl_codes.append(type_decl)
@@ -250,11 +254,11 @@ class hdf5_generator(code_generator):
     def generate_serializer_decl(self, cls):
         class_name = cls.spelling
         return f"""void {class_name}_serialize(const {class_name}& obj, 
-            const {class_name}_h5type h5tobj, H5::Object& h5o);"""
+            const H5::CompType& h5tobj, H5::H5Object& h5o);"""
 
     def generate_deserializer_decl(self, cls):
         class_name = cls.spelling
-        return f"""{class_name} {class_name}_deserialize(H5::Object&); """
+        return f"""{class_name} {class_name}_deserialize(H5::H5Object&, const H5::CompType& h5tobj); """
 
     def generate_serializer_impl(self, cls):
         # flatten but keep the shape as attribute?
@@ -262,23 +266,25 @@ class hdf5_generator(code_generator):
         lines = []
         lines.append(
             f"""void {class_name}_serialize(const {class_name}& obj, 
-            const {class_name}_h5type h5tobj, H5::Object& h5o) {{
+            const H5::CompType& h5tobj, H5::H5Object& h5o) {{
                 // todo: not implemented yet"""
         )
 
         # for each member in ht5 CompType,
 
-        lines.append(f"}} //  end of `{class_name}` serializer function")
+        lines.append(f"}} //  end of `{class_name}` serializer function\n")
         return "\n".join(lines)
 
     def generate_deserializer_impl(self, cls):
         # flatten but keep the shape as attribute?
-        return "// deserializer not implemented"
+        return "// deserializer not implemented\n"
 
 
 if __name__ == "__main__":
 
-    input_file = "../examples/EERA_types.h"
+    input_file = "../examples/CodeGen_types.h"
+    namespace = "EERAModel"
+    namespace = "CodeGen"
     if len(sys.argv) >= 2:
         input_file = sys.argv[1]
 
@@ -292,7 +298,7 @@ if __name__ == "__main__":
     else:
         output_file = input_file.replace(".h", "_hdf5.h")
 
-    g = hdf5_generator(input_file, output_file, ns_name="EERAModel")
+    g = hdf5_generator(input_file, output_file, ns_name=namespace)
     # todo: detect namespace_name
     g.generate()
     g.write_code()

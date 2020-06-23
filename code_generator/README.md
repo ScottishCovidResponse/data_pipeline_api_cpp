@@ -1,5 +1,6 @@
 **generate H5Type for any C++ data class, clang's python binding.**
-Copyright Qingfeng Xia @ UKAEA, 2020
+
+Copyright Qingfeng Xia @ UKAEA, 2020  
 License:  same as RAMP
 
 ## Tutorial
@@ -9,15 +10,17 @@ The generated header file `output_header_filename.h` declares a serial of `H5::C
 
 ### header, class and field requirement:
 + c-style struct/ C++ trivial-copyable data class  with public member will be saved
-+ Non-trivial C++ class with the help of the generated `serializer` function
 + all classes in a single namespace
 + generate header-only, but it can be split into h and cpp in the future
 field type supported
 + all builtin type like `int, double`
 + 1D fixed-size C-style array e.g. `int[3]`
+
+=== yet completed or tested ===
++ Non-trivial C++ class with the help of the generated `serializer` function
 + C++ class with member of `std::vector, std::array`
 + string types:  C string `char*` and `std::string` hdf5 string type is special
-+ For 2D matrix, using Eigen::Matrix HDF5_Eigen
++ For 2D matrix, using `Eigen::Matrix HDF5_Eigen`
 
 ## Future plan:
 + generate unit test 
