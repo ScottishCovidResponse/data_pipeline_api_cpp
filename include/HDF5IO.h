@@ -39,11 +39,31 @@ namespace data
         using Deserializer = std::function<T(const H5Object &)>;
 
         // small helper
-        void writeStringAttribute(H5Object *o, std::string key, std::string value)
+        static void writeStringAttribute(H5Object *o, std::string key, const std::string value)
         {
             StrType t_str = H5::StrType(H5::PredType::C_S1, value.size() + 1);
             Attribute at = o->createAttribute(key.c_str(), t_str, H5S_SCALAR);
             at.write(t_str, value.c_str());
+        }
+
+        // write vector<string> e.g. file content, into an attribute of HDF5 location
+        static void writeStringVectorAttribute(H5Object *o, std::string key, const std::vector<std::string> &values)
+        {
+            const hsize_t LEN = values.size();
+            const hsize_t SPACE_RANK = 1;
+            const char *wdata[LEN];
+            hsize_t dims1[] = {LEN};
+            DataSpace space1(SPACE_RANK, dims1);
+
+            for (size_t i = 0; i < LEN; i++)
+            {
+                const auto &s = values[i];
+                wdata[i] = s.c_str();
+            }
+
+            StrType t_str = H5::StrType(H5::PredType::C_S1, H5T_VARIABLE);
+            Attribute at = o->createAttribute(key.c_str(), t_str, space1);
+            at.write(t_str, wdata);
         }
 
         /**

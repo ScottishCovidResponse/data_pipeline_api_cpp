@@ -32,15 +32,19 @@ void test_h5(std::shared_ptr<H5File> file)
     cvalues.push_back(cd1);
     cvalues.push_back(cd2);
 
+#if !DATA_USE_COMPLEX_FIELDS
     data::IO::WriteVector<ComplexData>(cvalues, file, "complex_data", ComplexData_h5type);
 
-#if 0 // there is bug , stack smashing detected ***: terminated
+    // there is bug , stack smashing detected ***: terminated
     auto cv = data::IO::ReadVector<ComplexData>(file, "complex_data", ComplexData_h5type);
     for (const ComplexData &v : cv)
     {
         std::cout << v.ds.integer << std::endl;
     }
 #endif
+
+    std::vector<std::string> lines = {"line1", "line2"};
+    data::IO::writeStringVectorAttribute(file.get(), "vector_of_string", lines);
 
     std::vector<std::vector<int>> mat = {{1, 2, 3}, {4, 5, 6}};
     data::IO::WriteMatrix<int>(mat, file, "IntMatrix", PredType::NATIVE_INT);
