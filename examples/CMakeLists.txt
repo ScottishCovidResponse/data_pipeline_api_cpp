@@ -1,5 +1,13 @@
 if(ENABLE_HDF5)
 
+    add_executable(CodeGen_demo
+    CodeGen_demo.cpp
+    )
+    target_link_libraries(
+        CodeGen_demo
+        ${_hdf5_libs}
+    )
+
     add_executable(EERA_pipeline_demo
     EERA_pipeline_demo.cpp
     )
