@@ -57,6 +57,19 @@ Model Run
 + covid-sim
 + CoronaBICI 
 
+
+### Ian's Cpp binding of Python Pipeline API 
+https://github.com/ScottishCovidResponse/data_pipeline_api/tree/cppbindings/bindings/cpp
+
+Ian made his own `Table` class,  There is third-party full feature CSV single header library. 
+
+The not implemented DataPipeline.h has be removed from from this repo, so this repo can work together with Ian's cppbinding.
+
+The currently implementation is
++ a python code generator, aiming to generate H5:CompType instance for almost any C++ class
++ HDF5IO.h  read and write any class with the generated H5:CompType instance
+
+
 ### Plan for C++ API
 
 1. component selection, cmake setup, and test locally
@@ -84,19 +97,24 @@ Post-processing can be done in another language like R or python
   the key task is the data structure definition for parameter and result
 
 
-
-
-
 ## Third-party library selection
+
++ HDF5: for simulation result packing
+
+Model input format will be yaml, json or toml will not be used
++ yaml: 
+
+
 Since download and upload is not part of data pipeline, networking RESTFUL C++ will be removed
 + poco for networking: the only lib I have used, 
   other: restfulcpp, etc 
   header only: https://github.com/yhirose/cpp-httplib
-
 + json.hpp header only C++ json: extensible to decode/encode user types
-+ HDF5: for result packing
 + toml11: header only lib: https://github.com/ToruNiina/toml11#converting-a-table
+
+
 + csv: header only https://github.com/vincentlaucsb/csv-parser#single-header
+
 
 A more advanced C++ lib for data table as in R Table or Pandas.DataFrame
 + [xframe, towards a C++ dataframe](https://medium.com/@johan.mabille/xframe-towards-a-c-dataframe-26e1ccde211b)

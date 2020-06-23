@@ -33,6 +33,23 @@ field type supported
 
 https://github.com/cool-RR/PySnooper
 
+### impl of Variable length member is highly challenging
+
+https://stackoverflow.com/questions/35477590/reading-a-hdf5-dataset-with-compound-data-type-containing-multiple-sets-with-var
+
+https://github.com/dguest/hdf5-ntuples/blob/master/include/h5container.hh
+
+How to write `std::vector<EERAModel::particle>`
+A solution would be declare a new struct to hold several `hvl_t` for all varLen fields:  "vector<T>,  T&, T* pointer ",  c_str is not nessary, the length can be detected by `\0` NUL char. 
+inside the `<clsss_name>serialize()`, fill the vlen at the runtime. 
+then write into a sibling data set.
+
+To read: h5.py
+
+
+>  To get the type that the `VarLenType` is based on, I can run DataType::getSuper().getClass().  Then to actually construct the type (for example, if it is a CompType), then I can use `DataType::getSuper().getClass().getId()` in the CompType constructor.
+
+
 ## Installation
 
 HDF5 C++ official API. 
