@@ -26,6 +26,12 @@ def get_template_arguments(code):
     return [a.strip() for a in all_args]
 
 
+def get_field_by_name(cls, field_name):
+    for field in cls.get_children():
+        if field.kind == CursorKind.FIELD_DECL and field.spelling == field_name:
+            return field
+
+
 # can be further appended, assuming it is template class,
 registered_smart_pointers = ["shared_ptr", "unique_ptr", "scoped_ptr"]
 
@@ -52,7 +58,7 @@ def find_all(a_str, sub):
 
 
 ## ############### field decl type detection ##################
-def is_vlen_array(field_decl):
+def is_std_vector(field_decl):
     '''
     TypeKind.POINTER
         t.get_template_argument_type(0).spelling
@@ -124,7 +130,8 @@ def is_std_array(field_decl):
 
 def is_cstr_string(field_decl):
     # char* cstyle_string, `char[]` is_cstyle_array
-    return False
+    code = get_code(field_decl)
+    return code.find("*") >= 0 and code.find("char") >= 0
 
 
 def is_template(decl):

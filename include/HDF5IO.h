@@ -78,7 +78,7 @@ namespace data
          * 
          * */
         template <class T, typename = typename std::enable_if<std::is_trivially_copyable<T>::value>::type>
-        static bool WriteAttribute(const T val, std::shared_ptr<H5Object> h5loc,
+        static bool WriteAttribute(const T &val, std::shared_ptr<H5Object> h5loc,
                                    std::string attribute_name, const DataType &dtype)
         {
             Attribute attrib(h5loc->createAttribute(attribute_name, dtype, H5S_SCALAR));
@@ -141,17 +141,19 @@ namespace data
             DataSpace space(1, dims);
             DataSet dataset(h5loc->createDataSet(dataset_name, dtype, space));
 
-            // if buffer is contiguous, there is no need for a per element copy
-            for (const auto &v : vec)
+            // if buffer is contiguous (trivially-copyable) no need for a per element copy
+            if (!serializer)
             {
-                if (!serializer)
+                //const void *buf = std::addressof(v);
+                dataset.write(vec.data(), dtype);
+            }
+            else
+            {
+                for (const auto &v : vec)
                 {
                     const void *buf = std::addressof(v);
-                    dataset.write(buf, dtype); // todo: will auto move pos cursor?
-                }
-                else
-                {
-                    // todo
+                    // todo: move cursor offset
+                    dataset.write(buf, dtype);
                 }
             }
             space.close();

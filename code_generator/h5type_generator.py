@@ -11,6 +11,7 @@ see folder Readme for more details
 
 import sys
 import os.path
+from collections import OrderedDict
 
 # from . import clang_util
 from clang_util import *
@@ -120,23 +121,25 @@ class hdf5_generator(code_generator):
         _h5type_name = f"{class_name}_{field.spelling}_h5type"
         # el_h5type_name = char or u8char_t
         _template = f"""
-        auto {_h5type_name} = H5::StrType(H5::PredType::C_S1, 1));
-        {class_name}_h5type.insertMember(\"{field.spelling}\", 
+        auto {_h5type_name} = H5::StrType(H5::PredType::C_S1, H5T_VARIABLE);
+        {self.get_h5type(class_name)}.insertMember(\"{field.spelling}\", 
             HOFFSET({class_name}, {field.spelling}), {_h5type_name});"""
 
         return _template
 
     def generate_vlen_array_type(self, class_name, field):
-        # todo: std::vector<T> using vlen_type,
+        # todo: std::vector<T> using vlen_type, delay the insertMember until runtime
         # a per-field write serializer() is needed, inject meta data as Attribute like type
 
         el_type_name = get_template_arguments(get_code(field))[0]
         _h5type_name = f"{class_name}_{field.spelling}_h5type"
         el_h5type_name = f"TO_H5T({el_type_name})"
+        vl_field_name = f"{field.spelling}_hvl"
+        size_str = f"HOFFSET({class_name}, {vl_field_name})"
         _template = f"""
         auto {_h5type_name} = H5::VarLenType({el_h5type_name});
-        {class_name}_h5type.insertMember(\"{field.spelling}\", 
-            HOFFSET({class_name}, {field.spelling}), {_h5type_name});"""
+        {self.get_h5type(class_name)}.insertMember(\"{field.spelling}\", 
+            {size_str}, {_h5type_name});"""
 
         return _template
 
@@ -163,7 +166,7 @@ class hdf5_generator(code_generator):
         array_template = f"""
         hsize_t {dim_name}[] = {dim_array_expr};
         auto {array_h5type_name} = H5::ArrayType({el_h5type_name}, {dim}, {dim_name});
-        {class_name}_h5type.insertMember(\"{array_field_name}\", 
+        {self.get_h5type(class_name)}.insertMember(\"{array_field_name}\", 
             HOFFSET({class_name}, {array_field_name}), {array_h5type_name});"""
 
         return array_template
@@ -171,6 +174,13 @@ class hdf5_generator(code_generator):
     def is_user_type(self, field_decl):
         # class or struct,   "TypeKind.RECORD"
         return field_decl.type.spelling in self.generated_types
+
+    def get_h5type(self, class_name):
+        pos = class_name.find("_hvl")
+        if pos > 0:
+            return class_name[:pos] + "_h5type"
+        else:
+            return class_name + "_h5type"
 
     # format(class_name, array_field_name, el_type_name, dim, dim_array_expr)
     def generate_field(self, class_name, field_decl):
@@ -186,19 +196,21 @@ class hdf5_generator(code_generator):
 
         if is_cstyle_array(field_decl) or is_std_array(field_decl):
             return self.generate_array_type(class_name, field_decl)
-        elif is_vlen_array(field_decl):
+        elif is_std_vector(field_decl):
             # return f"// WARNING: skip vlen array `{field_name}` of type `{field_type_name}`"
             return self.generate_vlen_array_type(class_name, field_decl)
         elif is_std_string(field_decl) or is_cstr_string(field_decl):
-            return f"// WARNING: skip string `{field_name}` of type `{field_type_name}`"
+            return self.generate_string_type(class_name, field_decl)
+            # return f"// WARNING: skip string `{field_name}` of type `{field_type_name}`"
+
         elif field_type.kind == TypeKind.POINTER:  # type detect is working for pointer
             return f"// WARNING: skip pointer `{field_name}` of type `{field_type_name}`"
-
         # elif field_decl.is_reference():
+        #    field.decl.referenced
         #    return f"// WARNING: skip reference type `{field_type_name}`"
         elif is_builtin_type(field_decl):
             field_h5type_name = f"TO_H5T({field_type_name})"
-            return f"""{class_name}_h5type.insertMember(\"{field_name}\", 
+            return f"""{self.get_h5type(class_name)}.insertMember(\"{field_name}\", 
                 HOFFSET({class_name}, {field_name}), {field_h5type_name});"""
         elif field_decl.is_anonymous():
             return f"// WARNING: skip anonymous `{field_name}` of type `{field_type_name}`"
@@ -207,16 +219,92 @@ class hdf5_generator(code_generator):
         elif self.is_user_type(field_decl):
             if field_type_name in self.generated_types:
                 field_h5type_name = self.generated_types[field_type_name]
-                return f"""{class_name}_h5type.insertMember(\"{field_name}\", 
+                return f"""{self.get_h5type(class_name)}.insertMember(\"{field_name}\", 
                     HOFFSET({class_name}, {field_name}), {field_h5type_name});"""
             else:
                 return f"/// WARNING: `{field_type_name}` yet generated, check if inside the input header"
         else:
             return f"/// WARNING: member `{field_name}` of type `{field_type_name}` not supported"
 
-    def generate_class_code(self, cls):
-        # apply only to data class, trivial? no pointer type
+    def generate_hvl_class(self, cls, vl_fields):
+        # copy into a derived class with extra hvl_t field
         class_name = cls.spelling
+        ext_class_name = class_name + "_hvl"
+        vl = "\n".join([f"hvl_t {k}_hvl;" for k in vl_fields.keys()])
+        ctor = []
+        for k, vtype in vl_fields.items():
+            if vtype == "std::string" or vtype == "std::vector":
+                ctor.append(f"{k}_hvl.p = obj.{k}.data();")
+                ctor.append(f"{k}_hvl.len = obj.{k}.size();")
+
+        des = []
+        for k, vtype in vl_fields.items():
+            field = get_field_by_name(cls, k)
+            if vtype == "std::string":
+                des.append(
+                    f"""// std::string from char* and length
+                {k} = std::string({k}_hvl.p, {k}_hvl.len);
+                """
+                )
+            if vtype == "std::vector":
+                el_type_name = get_template_arguments(get_code(field))[0]
+                des.append(
+                    f"""
+                auto {k}_ptr = static_cast<{el_type_name}*>({k}_hvl.p);
+                {k}.assign({k}_ptr, {k}_ptr + {k}_hvl.len);
+                """
+                )
+
+        ctor_lines = "\n".join(ctor)
+        des_lines = "\n".join(des)
+
+        return f"""class {ext_class_name} : public {class_name}{{
+            public:
+            // make base class's private and protected field public
+            // using {class_name}::field_name;
+
+            /// extra hvl_t fields for all varlen fields of the base class
+            {vl}
+
+            {ext_class_name} ({class_name}& obj): {class_name}(obj)
+            {{
+                {ctor_lines}
+            }}
+
+            /// needed for deserialization 
+            {class_name} get_base()
+            {{
+                {des_lines}
+                {class_name} obj(*this);
+                return obj;
+            }}
+
+        }};
+        """
+
+    def get_varlen_types(self, cls):
+        #
+        vl_fields = OrderedDict()
+        for field in cls.get_children():
+            if (
+                field.kind == CursorKind.FIELD_DECL
+                and field.access_specifier == cx.AccessSpecifier.PUBLIC
+            ):
+                if is_std_vector(field):
+                    vl_fields[field.spelling] = "std::vector"
+                if is_std_string(field):
+                    vl_fields[field.spelling] = "std::string"
+
+        return vl_fields
+
+    def generate_class_code(self, cls):
+        # apply to only data class, trivial? no pointer type
+
+        vl_fields = self.get_varlen_types(cls)
+        if len(vl_fields.keys()) > 0:
+            class_name = cls.spelling + "_hvl"
+        else:
+            class_name = cls.spelling
 
         print("generating code for: `%s`, full type name: `%s`" % (cls.spelling, cls.type.spelling))
 
@@ -224,30 +312,39 @@ class hdf5_generator(code_generator):
             print("template class is not supported yet")
             return
 
+        protected_fields = OrderedDict()
         # non-Recurse for children of this class
         for field in cls.get_children():
-            if (
-                field.kind == CursorKind.FIELD_DECL
-                and field.access_specifier == cx.AccessSpecifier.PUBLIC
-            ):
+            if field.kind == CursorKind.FIELD_DECL:
                 self.init_codes.append(self.generate_field(class_name, field))
+
+            if field.access_specifier == cx.AccessSpecifier.PROTECTED:
+                protected_fields[field.spelling] = "protected"
+            if field.access_specifier == cx.AccessSpecifier.PRIVATE:
+                protected_fields[field.spelling] = "private"
+
         self.init_codes.append(f"// end of CompType member/field definition for {class_name}\n")
         # register the user type, so it can be field type of another user type
         self.generated_types[cls.type.spelling] = f"{class_name}_h5type"
 
         # is_trivially_copyable() is not available in clang, monkey_patch?
-        if not cls.type.is_pod():  # is_pod() is too strict requirement
+        # if not cls.type.is_pod():  # is_pod() is too strict requirement
+        if vl_fields:
             if not self.is_header_only:
                 self.generate_serializer_decl(cls)
 
-            self.sio_codes.append(self.generate_serializer_impl(cls))
+            self.sio_codes.append(self.generate_serializer_impl(cls, vl_fields))
             self.sio_codes.append(self.generate_deserializer_impl(cls))
 
             # FIXME for not pod class, sizeof() does not reflect the storage size
-            type_decl = f"H5::CompType {class_name}_h5type(sizeof({class_name}));"
+            self.decl_codes.append(self.generate_hvl_class(cls, vl_fields))
+            size_str = f"sizeof({class_name})"  # + {len(vl_fields.keys())}*sizeof(hvl_t)
+            type_decl = f"H5::CompType {cls.spelling}_h5type({size_str});"
         else:
             type_decl = f"H5::CompType {class_name}_h5type(sizeof({class_name}));"
         self.decl_codes.append(type_decl)
+
+        #
 
     ####################################################################
 
@@ -260,17 +357,24 @@ class hdf5_generator(code_generator):
         class_name = cls.spelling
         return f"""{class_name} {class_name}_deserialize(H5::H5Object&, const H5::CompType& h5tobj); """
 
-    def generate_serializer_impl(self, cls):
-        # flatten but keep the shape as attribute?
+    def generate_serializer_impl(self, cls, vl_fields):
+        # per-element write
         class_name = cls.spelling
         lines = []
         lines.append(
             f"""void {class_name}_serialize(const {class_name}& obj, 
-            const H5::CompType& h5tobj, H5::H5Object& h5o) {{
-                // todo: not implemented yet"""
+            const H5::CompType& h5tobj, H5::H5Object& h5o) {{"""
         )
 
-        # for each member in ht5 CompType,
+        # for each VarlenType emember in ht5 CompType
+        # base_num = f"base_num = h5tobj.get_number"
+        for i, k in enumerate(vl_fields.keys()):
+            vl_type = vl_fields[k]
+            if vl_type == "std::vector":
+                line = f"""
+                auto {k}_i = h5tobj.getMemberIndex("{k}");
+                auto {k}_vl_t = getMemberVarLenType({k}_i);
+                """
 
         lines.append(f"}} //  end of `{class_name}` serializer function\n")
         return "\n".join(lines)
@@ -282,7 +386,7 @@ class hdf5_generator(code_generator):
 
 if __name__ == "__main__":
 
-    input_file = "../examples/CodeGen_types.h"
+    input_file = "../demo/CodeGen_types.h"
 
     if len(sys.argv) >= 2:
         input_file = sys.argv[1]
