@@ -1,3 +1,14 @@
+###
+Parameters def from Peter
+
+https://github.com/ScottishCovidResponse/temporary_data/tree/peter-t-fox/444-add-eera-params-for-staging/temporary/Covid19_EERAModel/fixed-parameters
+
+### Thibaud has completed Irish model
+more general model workflow, abstracted from all other models
+Kristian is working on Data Abstraction Layer
+
+To enable correlation validation by other models,  a proper Result data structure
+
 ### EERA specific data structure
 
 2 Inputs adn 1 Output:  IO.h

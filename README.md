@@ -58,39 +58,61 @@ Model Run
 + CoronaBICI 
 
 
-### Ian's Cpp binding of Python Pipeline API 
+### Ian's Cpp binding of Python Pipeline API
+
+As the repo has not impl model input DataPipeline API, currently or perhaps model input should use Ian/s binding
 https://github.com/ScottishCovidResponse/data_pipeline_api/tree/cppbindings/bindings/cpp
 
-Ian made his own `Table` class,  There is third-party full feature CSV single header library. 
+One point to discuss is, what should be the type returned from `read_table()` that can be shared widely? 
 
-The not implemented DataPipeline.h has be removed from from this repo, so this repo can work together with Ian's cppbinding.
+Ian made his own `Table` class,  There is third-party full-featured CSV single header library. 
 
-The currently implementation is
-+ a python code generator, aiming to generate H5:CompType instance for almost any C++ class
-+ HDF5IO.h  read and write any class with the generated H5:CompType instance
 
+#### use HDF5IO.h with Ian's DataPipeline.h
+The not-implemented DataPipeline.h has be removed from from this repo, so this repo can work together with Ian's cppbinding.
+
+The currently **workflow** for HDF5 IO (manual workflow)
++ copy all classes to written into HDF5,  e.g.  `particle` or later more general result c++ class type, into a header file `EERA_types.h`, as input to the `hdf5_generator.py`
+
++ `hdf5_generator.py` is a python code generator, aiming to generate H5:CompType instance for almost any C++ class
+ see more in <code_generator/Readme.md>
+
++ `HDF5IO.h`  read and write any class with the generated H5:CompType instance in the generated `*_types_hdf5.h`
+
+`HDF5IO.h` is a head-only lib, just put `include/` and `third-party/` of this repo as `include_directories()` in specific model project cmake, it should work. 
+
+The workflow can be automated by cmake.
 
 ### Plan for C++ API
 
 1. component selection, cmake setup, and test locally
-> done 
-2. develop pipeline API in a separate repo
-  todo: 
-  rename method names to write_*()
-  Distribution class: just use `boost::random` 
+> done
+
+2. develop pipeline API (yet done)
+  done (HDF5IO.h)
+
+  todo: (or just use Ian's c++ wrapping of python API)
+  Pipeline API `write_*()`
+  Distribution class: just use `boost::random` ?
   Parameter class
   unit test: 
 
-3. integrate with EERA model,  CI install `libhdf5-dev`
-  define h5 data types, see example EERA_h5types.h
-  using macro to switch between current local csv files IO, and HDF5 IO
+3. integrate with EERA model,  
 
-4. result writing
-C++ may write some result into HDF5, but post-processing should not be part of C++ pipeline. 
+  using macro to switch between current local csv files IO, and pipeline IO
+
+4. result writing into HDF5 file
+ > HDF5IO is nearly done
+
+  define h5 data types, see example `EERA_types_hdf5.h`
+  using python script "hdf5_generator.py" to generate/update `EERA_types_hdf5.h`
+
+
  Image can be pushed into HDF5, but log file may be treated as string
  Parameter are treated as HDF5::Table, or just as toml file
  Log can be store a string attribute
 
+post-processing should not be part of C++ pipeline. 
 Post-processing can be done in another language like R or python
 
 5. result push to data registry and model cross-validation: 
@@ -137,15 +159,15 @@ A more advanced C++ lib for data table as in R Table or Pandas.DataFrame
 	https://github.com/BlueBrain/HighFive
 	Header-only, with `T[][], boost::ublas, Eigen::Matrix, XTensor` support
 
-### HDF5 file viewer on Ubuntu 18.04
+### HDF5 file viewer on Ubuntu 18.04/20.04
+
 Ubuntu 18.04 's **hdfview** from official repository has bug, it can not view the data.
 
 `pip install h5pyViewer`  but it is python2 only, not updated since 2015.
 
-`pip3 install vitables` also have some problem, pip3 can not install PyQt5,  even  after PyQt5 has been installed from system package manager,  pip3 seems does not find it,
+On ubuntu 18.04 `pip3 install vitables` also have some problem, pip3 can not install PyQt5,  even  after PyQt5 has been installed from system package manager,  pip3 seems does not find it,  so I download vitables.3.0.2 source code,  comment out 2 lines in `setup.py` and install it.  On ubuntu 18.04, `vitables` can be installed by `apt-get`
 
-so I download vitables.3.0.2 source code,  comment out 2 lines in `setup.py` and install it.
-
+Command line tool `h5dump` is working to check h5 data structure.
 
 ## Installation
 
@@ -159,16 +181,19 @@ note: as git module is used, add `--recursive`when clone this repo, i.e. `git cl
 
 Generic API
 + DataPipeline.h: the generic API for all C++ models
-+ Restful.h: get json or file by URL
++ Restful.h: get json or other config file by URL
++ HDF5IO.h:  helper functions to ease HDF5 IO
 
-EERA model specific header and demo
- 2 files
++ code_generator/ : an independent python code generation script
++ demo/ :  demo the usage of code generator for hdf5 IO
++ EERA_pipeline_demo/ :   EERA model specific header and demo
++ tests/ : unit tests
 
 Some header only libraries are downloaded and copied into this repository for the moment.  `git submodule add -b master https://github.com/ToruNiina/toml11.git`
 + json.hpp   download as a copy
 + toml.hpp    git submodule 
++ csv.hpp  download as a copy
 + eigen3-hdf5.hpp  download as a copy, with modification
-
 
 ### Install dependency on Ubuntu 18.04/20.04
 
@@ -200,13 +225,12 @@ cmake could not find OpenSSL installation, however, networking code has been tur
 
 ###  build with cmake
 
-Currently, it is not clear where this source folder should locate.
 Only 2 demo cpp to test out platform cmake configuration. 
 
 
 ## Data pipeline flow 
 
-To get started, I would expected all EERA model input parameter will come in toml file format (restful get / local hdf5), adapted for EERA model if needed.   
+To get started, I would expected all EERA model input parameter will come in  file format (restful get / local hdf5), adapted for EERA model if needed.   
 
 HDF5 write is for result, as HDF5 is good for large dataset in IO performance.
 
@@ -232,88 +256,6 @@ Model author will focus on model simulation code and judge the quality of result
 
 ## EERA specific
 ### [EERAModel_Data.md](EERAModel_Data.md)
-
-Parameters def from Peter
-
-https://github.com/ScottishCovidResponse/temporary_data/tree/peter-t-fox/444-add-eera-params-for-staging/temporary/Covid19_EERAModel/fixed-parameters
-
-### Thibaud is working on Irish model
-more general model workflow, abstracted from all other models
-It has been merged on date ???
-Kristian is working on Data Abstraction Layer
-
-To enable correlation validation by other models,  a proper Result data structure
-
-## Input Parameter class design
-
-`template<typename T> class Parameter` is not preferred, because  mixed type parameter dictionary, such as `std::map<std::string, Parameter>` is desired. Meanwhile, some C++ object can hold value of dynamic types with type info accessible, such as `Poco::Dynamic::Var` or `std::any`. For example, `nlohmann::json` or `toml::value` has  `type()` and type trait functions
-```c++
-is_primitive , is_structured , is_null , is_boolean , is_number , is_number_integer , is_number_unsigned , is_number_float , is_object , is_array , is_string , is_discarded , is_binary
-```
-
-Alternatively, there is no need to declare a new C++ type Parameter, just use json or toml::value as the Parameter object. to generate the model input ini or fill the ModelInputParameters object.
-
-```c++
-
-//using DT=nlohmann::json;
-using DT=toml::value;
-struct Parameter
-{
-	//  as dict key
-	std::string name; // short name, potential can be used to gen code,
-	std::string desc; // description/ doc string
-	// if std::any is used, then data type enum/string is needed, 
-	// or detect from json, while advanced data type std::vector<ET>
-	DT value;  // T any type supported by json, can be std::vector<ET>
-	std::string unit;  // empty if it is a non-unit 
-};
-
-// parameter table, group
-class  ParameterTable;
-// generate model input need Input Parameter data structures in ModelTypes.h
-```
-
-An adapter design pattern may transform server side paramter table into model-specific input configuration. 
-
-EERA has fixed parameters and distribution parameters
-
-### Data pipeline API
-https://github.com/ScottishCovidResponse/SCRC-internal/wiki/Model-data-pipeline-API-specification
-
-```py
-[point-estimate]
-value = 1.5
-```
-
-https://github.com/ScottishCovidResponse/temporary_data/blob/peter-t-fox/444-add-eera-params-for-staging/temporary/Covid19_EERAModel/fixed-parameters/T_inf/metadata/public/20200612.toml
-```toml
-[source]
-version = "0.1"
-description = "Mean asymptomatic period"
-type = "parameter"
-location = "data/1.toml"
-max_warning = 3
-messages = ["3: point estimate"]
-hash = "xxx"
-```
-
-### my Questions
-I am not sure about parameter unit for EERA model input parameters, where I can find those unit info?  
-
-> Peter had defined model input parameter
-
-Is json/toml an accepted file format?  store toml as a attribute of HDF5?
-> 
-
-Is EERA ini format compatible with toml file format?
-> 
-
-Can we use python get() and put() file instead of implementing in C++?
-
-
-
-
-
 
 
 
