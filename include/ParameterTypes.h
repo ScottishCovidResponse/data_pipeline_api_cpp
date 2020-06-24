@@ -1,6 +1,5 @@
 #pragma once
 
-#pragma once
 #define DATA_USE_TOML 1 // todo: define this in cmake file or commandline option
 #if DATA_USE_TOML
 #include "toml11/toml.hpp"
@@ -30,25 +29,26 @@ namespace data
         // if std::any is used, then data type enum/string is needed,
         // or detect from json, while advanced data type std::vector<ET>
         DT value;         // T any type supported by json, can be std::vector<ET>
+        DT uncertainty;   //
         std::string unit; // empty if it is a non-unit
     };
 
-    // parameter table, group, should have meta data
-    class ParameterTable
+    /// these class can be further subclass by specific model
+    class Estimation : public Parameter
+    {
+    };
+
+    class Distribution : public Parameter
+    {
+    };
+
+    //
+    class ParameterFile
     {
         std::map<std::string, Parameter> m_parameters;
 
     public:
-        ParameterTable(){};
-    };
-
-    /// these class can be further subclass by specific model
-    class Estimation
-    {
-    };
-
-    class Distribution
-    {
+        ParameterFile(){};
     };
 
 } // namespace data
