@@ -73,6 +73,7 @@ class hdf5_generator(code_generator):
     def __init__(self, input_header, output_header, ns_name=""):
         super(hdf5_generator, self).__init__(input_header, output_header, ns_name)
         h5_headers = f"""#include <H5Cpp.h>
+        #include <cstring>
         #include "{self.input_header_file}"
         #include "eigen3-hdf5.hpp"
         #define TO_H5T(type_name) \
@@ -111,19 +112,36 @@ class hdf5_generator(code_generator):
         # it is possible to get value and name of enum by clang
         pass
 
-    def generate_string_type(self, class_name, field):
+    def generate_cstr_type(self, class_name, field):
         # std::string, std::u8string,  c_str() can get the NUL-terminated c-style string pointer
         # a per-field write serializer() is needed, inject meta data as Attribute like type
         # H5::StrType(H5::PredType::C_S1, H5T_VARIABLE)) to write char* string_array[],
         # std::vector<std::string>
 
-        is_cstr = is_cstr_string(field)
         _h5type_name = f"{class_name}_{field.spelling}_h5type"
         # el_h5type_name = char or u8char_t
         _template = f"""
         auto {_h5type_name} = H5::StrType(H5::PredType::C_S1, H5T_VARIABLE);
         {self.get_h5type(class_name)}.insertMember(\"{field.spelling}\", 
             HOFFSET({class_name}, {field.spelling}), {_h5type_name});"""
+
+        return _template
+
+    def generate_std_string_type(self, class_name, field):
+        # std::string, std::u8string,  c_str() can get the NUL-terminated c-style string pointer
+        # a per-field write serializer() is needed, inject meta data as Attribute like type
+        # H5::StrType(H5::PredType::C_S1, H5T_VARIABLE)) to write char* string_array[],
+        # std::vector<std::string>
+
+        el_type_name = "char"
+        _h5type_name = f"{class_name}_{field.spelling}_h5type"
+        el_h5type_name = f"TO_H5T({el_type_name})"
+        vl_field_name = f"{field.spelling}_hvl"
+        offset_str = f"HOFFSET({class_name}, {vl_field_name})"
+        _template = f"""
+        auto {_h5type_name} = H5::VarLenType({el_h5type_name});
+        {self.get_h5type(class_name)}.insertMember(\"{field.spelling}\", 
+            {offset_str}, {_h5type_name});"""
 
         return _template
 
@@ -135,11 +153,11 @@ class hdf5_generator(code_generator):
         _h5type_name = f"{class_name}_{field.spelling}_h5type"
         el_h5type_name = f"TO_H5T({el_type_name})"
         vl_field_name = f"{field.spelling}_hvl"
-        size_str = f"HOFFSET({class_name}, {vl_field_name})"
+        offset_str = f"HOFFSET({class_name}, {vl_field_name})"
         _template = f"""
         auto {_h5type_name} = H5::VarLenType({el_h5type_name});
         {self.get_h5type(class_name)}.insertMember(\"{field.spelling}\", 
-            {size_str}, {_h5type_name});"""
+            {offset_str}, {_h5type_name});"""
 
         return _template
 
@@ -199,8 +217,10 @@ class hdf5_generator(code_generator):
         elif is_std_vector(field_decl):
             # return f"// WARNING: skip vlen array `{field_name}` of type `{field_type_name}`"
             return self.generate_vlen_array_type(class_name, field_decl)
-        elif is_std_string(field_decl) or is_cstr_string(field_decl):
-            return self.generate_string_type(class_name, field_decl)
+        elif is_std_string(field_decl):
+            return self.generate_std_string_type(class_name, field_decl)
+        elif is_cstr_string(field_decl):
+            return self.generate_cstr_type(class_name, field_decl)
             # return f"// WARNING: skip string `{field_name}` of type `{field_type_name}`"
 
         elif field_type.kind == TypeKind.POINTER:  # type detect is working for pointer
@@ -233,9 +253,13 @@ class hdf5_generator(code_generator):
         vl = "\n".join([f"hvl_t {k}_hvl;" for k in vl_fields.keys()])
         ctor = []
         for k, vtype in vl_fields.items():
-            if vtype == "std::string" or vtype == "std::vector":
+            if vtype == "std::vector":
                 ctor.append(f"{k}_hvl.p = obj.{k}.data();")
                 ctor.append(f"{k}_hvl.len = obj.{k}.size();")
+            if vtype == "std::string":
+                ctor.append(f"{k}_hvl.p = std::malloc(sizeof(char) * (obj.{k}.size()+1));")
+                ctor.append(f"std::strcpy((char*)({k}_hvl.p), obj.{k}.data());  // fixme: free()")
+                ctor.append(f"{k}_hvl.len = obj.{k}.size()  + 1;")
 
         des = []
         for k, vtype in vl_fields.items():
@@ -243,7 +267,7 @@ class hdf5_generator(code_generator):
             if vtype == "std::string":
                 des.append(
                     f"""// std::string from char* and length
-                {k} = std::string({k}_hvl.p, {k}_hvl.len);
+                {k} = "fixme"; //  std::string({k}_hvl.p, {k}_hvl.len);
                 """
                 )
             if vtype == "std::vector":
@@ -265,6 +289,8 @@ class hdf5_generator(code_generator):
 
             /// extra hvl_t fields for all varlen fields of the base class
             {vl}
+
+            {ext_class_name} (){{  }}  // default ctor
 
             {ext_class_name} ({class_name}& obj): {class_name}(obj)
             {{
@@ -362,26 +388,42 @@ class hdf5_generator(code_generator):
         class_name = cls.spelling
         lines = []
         lines.append(
-            f"""void {class_name}_serialize(const {class_name}& obj, 
-            const H5::CompType& h5tobj, H5::H5Object& h5o) {{"""
+            f"""void {class_name}_serialize({class_name}& obj, H5::DataSet & dataset, 
+                   const H5::DataSpace * memspace, const H5::DataSpace * space) {{
+                {class_name}_hvl tmp(obj);
+                if(memspace)
+                    dataset.write(&tmp, {class_name}_h5type, *memspace, *space);
+                else
+                {{
+                    // todo check if it attributeval, attrib
+                    //dataset.write({class_name}_h5type, &tmp);
+                }}
+
+            """
         )
 
         # for each VarlenType emember in ht5 CompType
         # base_num = f"base_num = h5tobj.get_number"
-        for i, k in enumerate(vl_fields.keys()):
-            vl_type = vl_fields[k]
-            if vl_type == "std::vector":
-                line = f"""
-                auto {k}_i = h5tobj.getMemberIndex("{k}");
-                auto {k}_vl_t = getMemberVarLenType({k}_i);
-                """
+        # for i, k in enumerate(vl_fields.keys()):
+        #     vl_type = vl_fields[k]
+        #     if vl_type == "std::vector":
+        #         line = f"""
+        #         auto {k}_i = h5tobj.getMemberIndex("{k}");
+        #         auto {k}_vl_t = getMemberVarLenType({k}_i);
+        #         """
 
         lines.append(f"}} //  end of `{class_name}` serializer function\n")
         return "\n".join(lines)
 
     def generate_deserializer_impl(self, cls):
         # flatten but keep the shape as attribute?
-        return "// deserializer not implemented\n"
+        class_name = cls.spelling
+        return f"""{class_name} {class_name}_deserialize(H5::DataSet & dataset, 
+                   const H5::DataSpace * memspace, const H5::DataSpace * space) {{
+            {class_name}_hvl tmp;
+            dataset.write(&tmp, {class_name}_h5type, *memspace, *space);
+            return tmp.get_base();
+        }}"""
 
 
 if __name__ == "__main__":

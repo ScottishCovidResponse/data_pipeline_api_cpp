@@ -34,9 +34,9 @@ namespace data
     {
     public:
         template <class T>
-        using Serializer = std::function<bool(const T &, H5Object &)>;
+        using Serializer = std::function<void(T &, DataSet &, const DataSpace *, const DataSpace *)>;
         template <class T>
-        using Deserializer = std::function<T(const H5Object &)>;
+        using Deserializer = std::function<T(DataSet &, const DataSpace *, const DataSpace *)>;
 
         // small helper
         static void writeStringAttribute(H5Object *o, std::string key, const std::string value)
@@ -112,7 +112,7 @@ namespace data
             DataSpace space(1, dims);
             Attribute attrib(h5loc->createAttribute(attribute_name, dtype, space));
 
-            serializer(val, attrib);
+            //serializer(val, attrib, nullptr, nullptr);
 
             space.close();
             attrib.close();
@@ -134,11 +134,12 @@ namespace data
          * 
          * */
         template <class T>
-        static bool WriteVector(const std::vector<T> vec, std::shared_ptr<DATA_H5Location> h5loc,
+        static bool WriteVector(std::vector<T> vec, std::shared_ptr<DATA_H5Location> h5loc,
                                 std::string dataset_name, const DataType &dtype, Serializer<T> serializer = nullptr)
         {
-            hsize_t dims[1] = {vec.size()};
-            DataSpace space(1, dims);
+            const int RANK = 1;
+            hsize_t dims[RANK] = {vec.size()};
+            DataSpace space(RANK, dims);
             DataSet dataset(h5loc->createDataSet(dataset_name, dtype, space));
 
             // if buffer is contiguous (trivially-copyable) no need for a per element copy
@@ -149,12 +150,22 @@ namespace data
             }
             else
             {
-                for (const auto &v : vec)
+                hsize_t offset[RANK] = {0}; // starting point row, col index
+                hsize_t count[RANK] = {1};  // block count
+                hsize_t stride[RANK] = {1}; // block stride
+                hsize_t block[RANK] = {1};
+
+                DataSpace memspace(RANK, block, NULL); // sub dataspace for each row
+
+                // subset selection:
+                // https://support.hdfgroup.org/ftp/HDF5/current/src/unpacked/c++/examples/h5tutr_subset.cpp
+                for (auto &v : vec)
                 {
-                    const void *buf = std::addressof(v);
-                    // todo: move cursor offset
-                    dataset.write(buf, dtype);
+                    space.selectHyperslab(H5S_SELECT_SET, count, offset, stride, block);
+                    serializer(v, dataset, &memspace, &space); // base ptr to destruct the derived class, memeroy leak?
+                    offset[0] = offset[0] + 1;
                 }
+                memspace.close();
             }
             space.close();
             dataset.close();
@@ -182,7 +193,8 @@ namespace data
         {
             DataSet dataset(h5loc->openDataSet(dataset_name));
 
-            hsize_t dims[2];
+            const int RANK = 1;
+            hsize_t dims[1];
             DataSpace space = dataset.getSpace();
             //assert(dataset.isSimple());                        // load all into memory from the whole file
             auto rank = space.getSimpleExtentDims(dims, NULL); // rank = 1
@@ -191,6 +203,12 @@ namespace data
 
             // if buffer is contiguous, all-in-one copy is possible
             // but it makes no diff per element or copy
+            hsize_t offset[RANK] = {0}; // starting point row, col index
+            hsize_t count[RANK] = {1};  // block count
+            hsize_t stride[RANK] = {1}; // block stride
+            hsize_t block[RANK] = {1};
+
+            DataSpace memspace(RANK, block, NULL); // sub dataspace for each row
 
             vec.reserve(length);
             for (size_t i = 0; i < length; i++)
@@ -200,10 +218,13 @@ namespace data
                     dataset.read(&tmp, dtype); // memcpy()  todo: will auto move pos cursor?
                 else
                 {
-                    //todo
+                    space.selectHyperslab(H5S_SELECT_SET, count, offset, stride, block);
+                    tmp = deserializer(dataset, &memspace, &space);
+                    offset[0] = offset[0] + 1;
                 }
                 vec.emplace_back(tmp);
             }
+            memspace.close();
             space.close();
             dataset.close();
             return vec;

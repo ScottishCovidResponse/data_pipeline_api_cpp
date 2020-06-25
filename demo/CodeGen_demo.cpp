@@ -35,15 +35,18 @@ void test_h5(std::shared_ptr<H5File> file)
     // std::array<> is trivially-copyable, so it is working
     data::IO::WriteAttribute<CDataStruct>(v1, file, "simple_data_attrib", CDataStruct_h5type);
 
-#if 1 || !DATA_USE_COMPLEX_FIELDS
-    data::IO::WriteVector<ComplexData>(cvalues, file, "complex_data", ComplexData_h5type);
-
-    // there is bug , stack smashing detected ***: terminated
-    // auto cv = data::IO::ReadVector<ComplexData>(file, "complex_data", ComplexData_h5type);
+#if DATA_USE_COMPLEX_FIELDS
+    data::IO::WriteVector<ComplexData>(cvalues, file, "complex_data",
+                                       ComplexData_h5type, ComplexData_serialize);
+    // writing is correct, but ReadVector() still fail
+    // auto cv = data::IO::ReadVector<ComplexData>(file, "complex_data",
+    //                                             ComplexData_h5type, ComplexData_deserialize);
     // for (const ComplexData &v : cv)
     // {
     //     std::cout << v.ds.integer << std::endl;
     // }
+#else
+    data::IO::WriteVector<ComplexData>(cvalues, file, "complex_data", ComplexData_h5type);
 #endif
 
     std::vector<std::string> lines = {"line1", "line2"};
