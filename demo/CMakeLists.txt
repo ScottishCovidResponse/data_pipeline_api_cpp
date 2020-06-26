@@ -16,3 +16,11 @@ if(ENABLE_HDF5)
     )
 
 endif()
+
+
+if(ENABLE_XTENSOR)
+    add_executable(demo_xtensor
+        demo_xtensor.cpp
+    )
+
+endif()

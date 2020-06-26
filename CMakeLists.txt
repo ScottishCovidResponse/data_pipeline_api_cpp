@@ -7,9 +7,11 @@ enable_language(CXX)
 option(ENABLE_HDF5 "Enable HDF5 support" ON)
 option(ENABLE_HDF5_GENERATOR "Enable python genetor to gen HDF5 types" OFF)
 option(ENABLE_TOML "Enable toml configuraton file support" ON)
+option(ENABLE_XTENSOR "Enable Xtensor support for multidimension array" OFF)
 option(ENABLE_EIGEN "Enable Eigen vector and matrix support" ON)
 option(ENABLE_NETWORKING "Enable RESTFUL network get and put support" OFF)
 
+option(ENABLE_EERA "Enable EERA pipeline demo" OFF)
 option(ENABLE_CODE_COVERAGE "Enable coverage reporting" OFF)
 option(ENABLE_TEST "use unit test module" ON)
 
@@ -26,7 +28,7 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party")
 # supply env variable to cmake for other parameters:  `CXX=clang++  cmake ..`
 # std can and should be applied to target only, here is the default C++11
 if (NOT DEFINED CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 11)
+    set(CMAKE_CXX_STANDARD 14)
 endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -134,13 +136,39 @@ if(ENABLE_HDF5)
 endif()
 
 ##############################################################
+# the sequence of include_directories() and add_subdirectory() is crucial
+if(ENABLE_XTENSOR)
+    #if not exist, download by git submodule
+
+    if( NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third-party/xtl")
+    execute_process(
+        COMMAND git submodule add https://github.com/xtensor-stack/xtl
+        WORKING_DIRECTORY {PROJECT_SOURCE_DIR}/third-party
+    )
+    endif()
+    if( NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third-party/xtensor")
+    execute_process(
+        COMMAND git submodule add https://github.com/xtensor-stack/xtensor
+        WORKING_DIRECTORY {PROJECT_SOURCE_DIR}/third-party
+    )
+    endif()
+    add_definitions("-DDATA_USE_XTENSOR")
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party/xtl/include")
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party/xtensor/include")
+    message(STATUS "header-only lib xtensor has been enabled for this project"
+        "as git submodule at `${CMAKE_CURRENT_SOURCE_DIR}/third-party/xtensor`")
+
+endif()
+
 if(ENABLE_HDF5_GENERATOR)
     add_definitions("-DDATA_USE_HDF5_GENERATOR")
     add_subdirectory("demo")
     # run command to generate some code
 endif()
 
-add_subdirectory("EERA_pipeline_demo")
+if(ENABLE_EERA)
+    add_subdirectory("EERA_pipeline_demo")
+endif()
 
 if(ENABLE_TEST)
     add_subdirectory(tests)  # disable it since there is compiling error
