@@ -1,5 +1,13 @@
 # C++ data management library for Covid19 RAMP
 
+**IMPORTANT NOTICE**
+The latest C++ Pipeline API will be based on pybind11 wrapping of Python Pipeline API.
+https://github.com/ScottishCovidResponse/data_pipeline_api/tree/cppbindings/bindings/cpp
+Work on this repo as a trial of pure C++ implementation will stop for the moment. Some of the files will merged to https://github.com/ScottishCovidResponse/data_pipeline_api/tree/cppbindings/bindings/cpp
+
+In this repo, currently, it has a python code generator and HDF5IO.h to save c++ data class into HDF5 file without using/knowing HDF5 API, some other model input and result types definition. 
+June 26 2020
+
 ## Introduction RAMP
 
 ### Data pipeline
