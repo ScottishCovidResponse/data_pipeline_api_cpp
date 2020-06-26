@@ -22,11 +22,6 @@ namespace data
     /**  delay the design until it is actually needed
      * this class should holds metadata and a pointer to the data
     */
-    class Array
-    {
-        // Data types:  XTensor, Eigen,  std::vector<T>,  T[][]
-        std::vector<Dimension> dims;
-    };
 
     /**  an tentative impl of Table, RowMajor table
      * this class should holds metadata and a pointer to the data
