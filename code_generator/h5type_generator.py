@@ -45,6 +45,7 @@ class code_generator(object):
         self.header_codes.append(basic_header)
         self.decl_codes = ["/// this code section declare types, put into header file"]
         self.impl_codes = ["/// implication code, put into cpp file"]
+        self.extra_decl_codes = []  # decl code in another namespace
 
     def write_code(self):
         # currently header only mode
@@ -62,9 +63,17 @@ class code_generator(object):
             if self.namespace_name:
                 f.write(f"\n}} // namespace {self.namespace_name}\n")
 
+            if self.extra_decl_codes:
+                f.write("\n\n")
+                f.write("\n".join(self.extra_decl_codes))
+
 
 class hdf5_generator(code_generator):
     """
+    
+    /* no diagnostic for this one */
+    #pragma GCC diagnostic pop
+    
     """
 
     # still error in C++
@@ -75,22 +84,39 @@ class hdf5_generator(code_generator):
         h5_headers = f"""#include <H5Cpp.h>
         #include <cstring>
         #include "{self.input_header_file}"
-        #include "eigen3-hdf5.hpp"
+        #include "HDF5_TypeTraits.h"
         #define TO_H5T(type_name) \
-        (*EigenHDF5::DatatypeSpecialization<type_name>::get())
+        (*HDF5::to_h5type<type_name>::get())
         """
         self.header_codes.append(h5_headers)
         self.sio_codes = []
         self.init_codes = ["/// this code section init instances, put into cpp file"]
+        self.type_trait_codes = []
         # print_ast(self.root_cursor)
 
     def prepare(self):
+        self.init_codes.append(
+            """
+        #if defined(__GNUC__)
+        #pragma GCC diagnostic ignored "-Winvalid-offsetof"
+        #endif """
+        )
         self.init_codes.append("void init_h5types(){")
 
     def post(self):
         self.init_codes.append("\n}  // end of function init_h5types() \n")
+        self.init_codes.append(
+            """
+        #ifdef __GCC__
+        #pragma GCC diagnostic pop
+        #endif """
+        )
 
         self.impl_codes = self.init_codes + self.sio_codes
+
+        self.extra_decl_codes.append("namespace HDF5{")
+        self.extra_decl_codes.append("\n".join(self.type_trait_codes))
+        self.extra_decl_codes.append("} // namespace HDF5 ")
 
     def generate(self):
         self.prepare()
@@ -199,6 +225,17 @@ class hdf5_generator(code_generator):
             return class_name[:pos] + "_h5type"
         else:
             return class_name + "_h5type"
+
+    def generate_to_h5type_trait(self, class_name):
+        return f"""template <>
+        struct to_h5type<{self.namespace_name}::{class_name}>
+        {{
+            static inline const H5::DataType *get(void)
+            {{
+                return &{self.namespace_name}::{class_name}_h5type;
+            }}
+        }};
+        """
 
     # format(class_name, array_field_name, el_type_name, dim, dim_array_expr)
     def generate_field(self, class_name, field_decl):
@@ -369,7 +406,7 @@ class hdf5_generator(code_generator):
         else:
             type_decl = f"H5::CompType {class_name}_h5type(sizeof({class_name}));"
         self.decl_codes.append(type_decl)
-
+        self.type_trait_codes.append(self.generate_to_h5type_trait(cls.spelling))
         #
 
     ####################################################################
