@@ -4,5 +4,7 @@ PM
 EERA
 EERA/*
 
+*_hdf5.h
 .vscode/*
+*/.vscode/*
 *.pyc

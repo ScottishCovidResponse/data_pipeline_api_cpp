@@ -27,12 +27,12 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party")
 ##############################################################
 # supply env variable to cmake for other parameters:  `CXX=clang++  cmake ..`
 # std can and should be applied to target only, here is the default C++11
-if (NOT DEFINED CMAKE_CXX_STANDARD)
+if (NOT  CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 14)
 endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (NOT DEFINED CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif()
 
