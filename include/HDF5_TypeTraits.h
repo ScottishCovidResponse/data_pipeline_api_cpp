@@ -6,6 +6,7 @@
 
 #include <complex>
 #include <cstddef>
+#include <cassert>
 #include <string>
 #include <vector>
 

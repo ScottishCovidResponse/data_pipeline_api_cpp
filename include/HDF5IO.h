@@ -8,6 +8,7 @@
 
 #include <H5Cpp.h>
 using namespace H5;
+#include "HDF5_TypeTraits.h"
 
 #if DATA_USE_EIGEN
 // origin repo:  https://github.com/garrison/eigen3-hdf5  does not work with HDF5 1.10.1
@@ -79,8 +80,9 @@ namespace data
          * */
         template <class T, typename = typename std::enable_if<std::is_trivially_copyable<T>::value>::type>
         static bool WriteAttribute(const T &val, std::shared_ptr<H5Object> h5loc,
-                                   std::string attribute_name, const DataType &dtype)
+                                   std::string attribute_name)
         {
+            const DataType &dtype = *HDF5::to_h5type<T>::get();
             Attribute attrib(h5loc->createAttribute(attribute_name, dtype, H5S_SCALAR));
 
             const void *buf = std::addressof(val);
@@ -105,9 +107,10 @@ namespace data
         // ,typename = typename std::enable_if<!std::is_trivially_copyable<T>::value>::type
         template <class T>
         static bool WriteAttribute(const T &val, std::shared_ptr<H5Object> h5loc,
-                                   std::string attribute_name, const DataType &dtype,
+                                   std::string attribute_name,
                                    Serializer<T> serializer)
         {
+            const DataType &dtype = *HDF5::to_h5type<T>::get();
             hsize_t dims[1] = {1};
             DataSpace space(1, dims);
             Attribute attrib(h5loc->createAttribute(attribute_name, dtype, space));
@@ -135,8 +138,9 @@ namespace data
          * */
         template <class T>
         static bool WriteVector(std::vector<T> vec, std::shared_ptr<DATA_H5Location> h5loc,
-                                std::string dataset_name, const DataType &dtype, Serializer<T> serializer = nullptr)
+                                std::string dataset_name, Serializer<T> serializer = nullptr)
         {
+            const DataType &dtype = *HDF5::to_h5type<T>::get();
             const int RANK = 1;
             hsize_t dims[RANK] = {vec.size()};
             DataSpace space(RANK, dims);
@@ -189,8 +193,9 @@ namespace data
          * */
         template <class T>
         static const std::vector<T> ReadVector(std::shared_ptr<DATA_H5Location> h5loc, std::string dataset_name,
-                                               const DataType &dtype, Deserializer<T> deserializer = nullptr)
+                                               Deserializer<T> deserializer = nullptr)
         {
+            const DataType &dtype = *HDF5::to_h5type<T>::get();
             DataSet dataset(h5loc->openDataSet(dataset_name));
 
             const int RANK = 1;
@@ -244,8 +249,9 @@ namespace data
          * */
         template <class T, typename = typename std::enable_if<std::is_trivially_copyable<T>::value>::type>
         static bool WriteMatrix(const std::vector<std::vector<T>> mat, std::shared_ptr<DATA_H5Location> h5loc,
-                                const std::string dataset_name, const DataType &dtype)
+                                const std::string dataset_name)
         {
+            const DataType &dtype = *HDF5::to_h5type<T>::get();
             const int RANK = 2;
             hsize_t colsize = mat[0].size();
             hsize_t offset[2] = {0, 0}; // starting point row, col index
@@ -285,8 +291,9 @@ namespace data
          * */
         template <class T, typename = typename std::enable_if<std::is_trivially_copyable<T>::value>::type>
         static std::vector<std::vector<T>> ReadMatrix(std::shared_ptr<DATA_H5Location> h5loc,
-                                                      std::string dataset_name, const DataType &dtype)
+                                                      std::string dataset_name)
         {
+            const DataType &dtype = *HDF5::to_h5type<T>::get();
             std::vector<std::vector<T>> mat;
             const int RANK = 2;
             DataSet dataset(h5loc->openDataSet(dataset_name));

@@ -33,14 +33,14 @@ void test_h5(std::shared_ptr<H5File> file)
     cvalues.push_back(cd2);
 
     // std::array<> is trivially-copyable, so it is working
-    data::IO::WriteAttribute<CDataStruct>(v1, file, "simple_data_attrib", CDataStruct_h5type);
+    data::IO::WriteAttribute<CDataStruct>(v1, file, "simple_data_attrib");
 
 #if DATA_USE_COMPLEX_FIELDS
     data::IO::WriteVector<ComplexData>(cvalues, file, "complex_data",
-                                       ComplexData_h5type, ComplexData_serialize);
+                                        ComplexData_serialize);
     // writing is correct, but ReadVector() still fail
     // auto cv = data::IO::ReadVector<ComplexData>(file, "complex_data",
-    //                                             ComplexData_h5type, ComplexData_deserialize);
+    //                                              ComplexData_deserialize);
     // for (const ComplexData &v : cv)
     // {
     //     std::cout << v.ds.integer << std::endl;
@@ -53,9 +53,9 @@ void test_h5(std::shared_ptr<H5File> file)
     data::IO::writeStringVectorAttribute(file.get(), "vector_of_string", lines);
 
     std::vector<std::vector<int>> mat = {{1, 2, 3}, {4, 5, 6}};
-    data::IO::WriteMatrix<int>(mat, file, "IntMatrix", PredType::NATIVE_INT);
+    data::IO::WriteMatrix<int>(mat, file, "IntMatrix");
 
-    auto m = data::IO::ReadMatrix<int>(file, "IntMatrix", PredType::NATIVE_INT);
+    auto m = data::IO::ReadMatrix<int>(file, "IntMatrix");
     assert(m.size() == 2);
 
 #if DATA_USE_EIGEN
