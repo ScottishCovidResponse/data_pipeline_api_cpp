@@ -36,8 +36,7 @@ void test_h5(std::shared_ptr<H5File> file)
     data::IO::WriteAttribute<CDataStruct>(v1, file, "simple_data_attrib");
 
 #if DATA_USE_COMPLEX_FIELDS
-    data::IO::WriteVector<ComplexData>(cvalues, file, "complex_data",
-                                        ComplexData_serialize);
+    data::IO::WriteVector<ComplexData>(cvalues, file, "complex_data");
     // writing is correct, but ReadVector() still fail
     // auto cv = data::IO::ReadVector<ComplexData>(file, "complex_data",
     //                                              ComplexData_deserialize);

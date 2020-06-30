@@ -423,6 +423,18 @@ class hdf5_generator(code_generator):
     def generate_serializer_impl(self, cls, vl_fields):
         # per-element write
         class_name = cls.spelling
+
+        _s = f"""
+        template <> struct to_h5serializer<{self.namespace_name}::{class_name}>
+        {{
+            static inline const Serializer<{self.namespace_name}::{class_name}> get(void)
+            {{
+                return {self.namespace_name}::{class_name}_serialize;
+            }}
+        }};
+        """
+        self.type_trait_codes.append(_s)
+
         lines = []
         lines.append(
             f"""void {class_name}_serialize({class_name}& obj, H5::DataSet & dataset, 
@@ -455,6 +467,18 @@ class hdf5_generator(code_generator):
     def generate_deserializer_impl(self, cls):
         # flatten but keep the shape as attribute?
         class_name = cls.spelling
+
+        _d = f"""
+        template <> struct to_h5deserializer<{self.namespace_name}::{class_name}>
+        {{
+            static inline const Deserializer<{self.namespace_name}::{class_name}> get(void)
+            {{
+                return {self.namespace_name}::{class_name}_deserialize;
+            }}
+        }};
+        """
+        self.type_trait_codes.append(_d)
+
         return f"""{class_name} {class_name}_deserialize(H5::DataSet & dataset, 
                    const H5::DataSpace * memspace, const H5::DataSpace * space) {{
             {class_name}_hvl tmp;

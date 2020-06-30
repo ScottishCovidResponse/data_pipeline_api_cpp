@@ -34,12 +34,7 @@ namespace data
     class IO
     {
     public:
-        template <class T>
-        using Serializer = std::function<void(T &, DataSet &, const DataSpace *, const DataSpace *)>;
-        template <class T>
-        using Deserializer = std::function<T(DataSet &, const DataSpace *, const DataSpace *)>;
-
-        // small helper
+        // helper method, newer H5Cpp.h has already such helper to write std::string
         static void writeStringAttribute(H5Object *o, std::string key, const std::string value)
         {
             StrType t_str = H5::StrType(H5::PredType::C_S1, value.size() + 1);
@@ -106,11 +101,11 @@ namespace data
          * */
         // ,typename = typename std::enable_if<!std::is_trivially_copyable<T>::value>::type
         template <class T>
-        static bool WriteAttribute(const T &val, std::shared_ptr<H5Object> h5loc,
-                                   std::string attribute_name,
-                                   Serializer<T> serializer)
+        static bool WriteAttribute1(const T &val, std::shared_ptr<H5Object> h5loc,
+                                    std::string attribute_name)
         {
             const DataType &dtype = *HDF5::to_h5type<T>::get();
+            HDF5::Serializer<T> serializer = HDF5::to_h5serializer<T>::get();
             hsize_t dims[1] = {1};
             DataSpace space(1, dims);
             Attribute attrib(h5loc->createAttribute(attribute_name, dtype, space));
@@ -138,9 +133,10 @@ namespace data
          * */
         template <class T>
         static bool WriteVector(std::vector<T> vec, std::shared_ptr<DATA_H5Location> h5loc,
-                                std::string dataset_name, Serializer<T> serializer = nullptr)
+                                std::string dataset_name)
         {
             const DataType &dtype = *HDF5::to_h5type<T>::get();
+            HDF5::Serializer<T> serializer = HDF5::to_h5serializer<T>::get();
             const int RANK = 1;
             hsize_t dims[RANK] = {vec.size()};
             DataSpace space(RANK, dims);
@@ -192,10 +188,10 @@ namespace data
          *  then give the default val as nullptr
          * */
         template <class T>
-        static const std::vector<T> ReadVector(std::shared_ptr<DATA_H5Location> h5loc, std::string dataset_name,
-                                               Deserializer<T> deserializer = nullptr)
+        static const std::vector<T> ReadVector(std::shared_ptr<DATA_H5Location> h5loc, std::string dataset_name)
         {
             const DataType &dtype = *HDF5::to_h5type<T>::get();
+            HDF5::Deserializer<T> deserializer = HDF5::to_h5deserializer<T>();
             DataSet dataset(h5loc->openDataSet(dataset_name));
 
             const int RANK = 1;

@@ -9,11 +9,36 @@
 #include <cassert>
 #include <string>
 #include <vector>
+#include <functional>
 
 #include <H5Cpp.h>
 
 namespace HDF5
 {
+    /// TODO: apply constness to the input parameter `const T& `
+    template <class T>
+    using Serializer = std::function<void(T &, H5::DataSet &, const H5::DataSpace *, const H5::DataSpace *)>;
+    template <class T>
+    using Deserializer = std::function<T(H5::DataSet &, const H5::DataSpace *, const H5::DataSpace *)>;
+
+    template <typename T>
+    struct to_h5serializer
+    {
+        static inline const Serializer<T> get(void)
+        {
+            return nullptr;
+        }
+    };
+
+    template <typename T>
+    struct to_h5deserializer
+    {
+        static inline const Deserializer<T> get(void)
+        {
+            return nullptr;
+        }
+    };
+
     template <typename T>
     struct to_h5type;
 
