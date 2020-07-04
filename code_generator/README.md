@@ -1,7 +1,12 @@
 **generate H5Type for any C++ data class, clang's python binding.**
 
-Copyright Qingfeng Xia @ UKAEA, 2020  
-License:  same as RAMP
+Copyright Qingfeng Xia @ UKAEA, 2020
+
+Note:  This is a personal contribution in the author's non-office hours, driven by personal interest. 
+
+License:  BSD 3-clause, the same as all other https://github.com/ScottishCovidResponse projects. 
+
+This code_generator is not a completed project yet, but it will be developed in the author's personal github to be some kind of usefulness.
 
 ## Tutorial
 Usage:  `h5type_generator.py input_header.h output_header_filename.h  NameSpaceName`
@@ -26,7 +31,7 @@ In  the folder <../demo/>, there are 3 files
 field type supported
 + all builtin scalar types like `int, double`
 + 1D fixed-size C-style array e.g. `int[3]`
-+ std::string
++ std::string :  coded, yet working
 
 === yet completed or tested ===
 + Non-trivial C++ class with the help of the generated `serializer` function
